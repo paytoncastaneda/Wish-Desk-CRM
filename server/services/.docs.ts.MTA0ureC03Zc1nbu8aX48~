@@ -1,0 +1,258 @@
+import { storage } from "../storage";
+import type { Document, InsertDocument } from "@shared/schema";
+import fs from "fs/promises";
+import path from "path";
+
+class DocsService {
+  private docsDirectory: string;
+
+  constructor() {
+    this.docsDirectory = path.join(process.cwd(), "generated-docs");
+    this.ensureDocsDirectory();
+  }
+
+  private async ensureDocsDirectory(): Promise<void> {
+    try {
+      await fs.mkdir(this.docsDirectory, { recursive: true });
+    } catch (error) {
+      console.error("Error creating docs directory:", error);
+    }
+  }
+
+  async createDocument(docData: InsertDocument): Promise<Document> {
+    try {
+      // Generate filename from title
+      const filename = this.generateFilename(docData.title);
+      const filePath = path.join(this.docsDirectory, filename);
+
+      // Create markdown content
+      const markdownContent = this.generateMarkdownContent(docData);
+
+      // Write file to disk
+      await fs.writeFile(filePath, markdownContent, 'utf-8');
+
+      // Create document record with file path
+      const document = await storage.createDocument({
+        ...docData,
+        filePath: filename
+      });
+
+      return document;
+    } catch (error) {
+      console.error("Error creating document:", error);
+      throw new Error("Failed to create document");
+    }
+  }
+
+  async updateDocument(id: number, docData: Partial<Document>): Promise<Document | undefined> {
+    try {
+      const existingDoc = await storage.getDocument(id);
+      if (!existingDoc) return undefined;
+
+      // Update file if content or title changed
+      if (docData.content || docData.title) {
+        const updatedDoc = { ...existingDoc, ...docData };
+        const markdownContent = this.generateMarkdownContent(updatedDoc);
+        
+        if (existingDoc.filePath) {
+          const filePath = path.join(this.docsDirectory, existingDoc.filePath);
+          await fs.writeFile(filePath, markdownContent, 'utf-8');
+        }
+      }
+
+      // Update document record
+      const updatedDocument = await storage.updateDocument(id, docData);
+      return updatedDocument;
+    } catch (error) {
+      console.error("Error updating document:", error);
+      throw new Error("Failed to update document");
+    }
+  }
+
+  async getDocumentContent(id: number): Promise<string | null> {
+    try {
+      const document = await storage.getDocument(id);
+      if (!document || !document.filePath) return null;
+
+      const filePath = path.join(this.docsDirectory, document.filePath);
+      const content = await fs.readFile(filePath, 'utf-8');
+      return content;
+    } catch (error) {
+      console.error(`Error reading document ${id}:`, error);
+      return null;
+    }
+  }
+
+  async deleteDocument(id: number): Promise<boolean> {
+    try {
+      const document = await storage.getDocument(id);
+      if (!document) return false;
+
+      // Delete file if it exists
+      if (document.filePath) {
+        try {
+          const filePath = path.join(this.docsDirectory, document.filePath);
+          await fs.unlink(filePath);
+        } catch (error) {
+          console.error(`Error deleting file for document ${id}:`, error);
+        }
+      }
+
+      // Delete document record
+      return await storage.deleteDocument(id);
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      return false;
+    }
+  }
+
+  private generateFilename(title: string): string {
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+    
+    const timestamp = Date.now();
+    return `${slug}-${timestamp}.md`;
+  }
+
+  private generateMarkdownContent(docData: Partial<Document>): string {
+    const now = new Date();
+    const frontMatter = `---
+title: "${docData.title || 'Untitled'}"
+category: ${docData.category || 'general'}
+status: ${docData.status || 'draft'}
+author: ${docData.author || 'Unknown'}
+created: ${now.toISOString()}
+updated: ${now.toISOString()}
+---
+
+`;
+
+    return frontMatter + (docData.content || '');
+  }
+
+  async getCategoryStats(): Promise<Record<string, number>> {
+    const documents = await storage.getDocuments();
+    return documents.reduce((acc, doc) => {
+      acc[doc.category] = (acc[doc.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }
+
+  async searchDocuments(query: string): Promise<Document[]> {
+    const documents = await storage.getDocuments();
+    const lowercaseQuery = query.toLowerCase();
+    
+    return documents.filter(doc => 
+      doc.title.toLowerCase().includes(lowercaseQuery) ||
+      doc.content.toLowerCase().includes(lowercaseQuery)
+    );
+  }
+
+  async generateProcessDocumentation(processName: string, steps: string[]): Promise<Document> {
+    const content = `# ${processName}
+
+## Overview
+This document outlines the step-by-step process for ${processName.toLowerCase()}.
+
+## Prerequisites
+- Access to Wish Desk CRM
+- Appropriate permissions for the process
+
+## Process Steps
+
+${steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}
+
+## Troubleshooting
+If you encounter issues during this process:
+1. Verify all prerequisites are met
+2. Check system status and connectivity
+3. Contact the system administrator if problems persist
+
+## Related Documentation
+- [System Setup Guide](../setup/system-setup.md)
+- [API Documentation](../api/api-reference.md)
+- [Troubleshooting Guide](../troubleshooting/common-issues.md)
+
+---
+*Generated by Wish Desk CRM Documentation System*
+`;
+
+    return this.createDocument({
+      title: processName,
+      category: "process",
+      content,
+      status: "published",
+      author: "System"
+    });
+  }
+
+  async generateAPIDocumentation(endpoints: Array<{
+    method: string;
+    path: string;
+    description: string;
+    parameters?: string[];
+    response?: string;
+  }>): Promise<Document> {
+    const content = `# API Documentation
+
+## Overview
+This document provides comprehensive API documentation for the Wish Desk CRM system.
+
+## Authentication
+All API requests require authentication. Include your API key in the Authorization header:
+
+\`\`\`
+Authorization: Bearer YOUR_API_KEY
+\`\`\`
+
+## Base URL
+\`\`\`
+https://your-domain.com/api
+\`\`\`
+
+## Endpoints
+
+${endpoints.map(endpoint => `### ${endpoint.method.toUpperCase()} ${endpoint.path}
+
+${endpoint.description}
+
+${endpoint.parameters ? `**Parameters:**
+${endpoint.parameters.map(param => `- ${param}`).join('\n')}` : ''}
+
+${endpoint.response ? `**Response:**
+\`\`\`json
+${endpoint.response}
+\`\`\`` : ''}
+
+---`).join('\n\n')}
+
+## Error Handling
+The API uses standard HTTP status codes:
+- 200: Success
+- 400: Bad Request
+- 401: Unauthorized
+- 404: Not Found
+- 500: Internal Server Error
+
+## Rate Limiting
+API requests are limited to 1000 requests per hour per API key.
+
+---
+*Generated by Wish Desk CRM Documentation System*
+`;
+
+    return this.createDocument({
+      title: "API Reference",
+      category: "api",
+      content,
+      status: "published",
+      author: "System"
+    });
+  }
+}
+
+export const docsService = new DocsService();

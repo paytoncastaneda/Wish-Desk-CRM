@@ -1,8 +1,9 @@
 import { 
-  users, tasks, githubRepos, emails, reports, documents,
+  users, tasks, githubRepos, githubCommits, emails, reports, documentation,
   type User, type InsertUser, type Task, type InsertTask,
-  type GitHubRepo, type Email, type InsertEmail,
-  type Report, type InsertReport, type Document, type InsertDocument
+  type GithubRepo, type InsertGithubRepo, type GithubCommit, type InsertGithubCommit,
+  type Email, type InsertEmail, type Report, type InsertReport,
+  type Documentation, type InsertDocumentation
 } from "@shared/schema";
 
 export interface IStorage {
@@ -12,61 +13,84 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 
   // Tasks
-  getTasks(): Promise<Task[]>;
+  getAllTasks(): Promise<Task[]>;
   getTask(id: number): Promise<Task | undefined>;
   createTask(task: InsertTask): Promise<Task>;
-  updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined>;
+  updateTask(id: number, updates: Partial<InsertTask>): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
   getTasksByStatus(status: string): Promise<Task[]>;
   getTasksByPriority(priority: string): Promise<Task[]>;
 
   // GitHub Repos
-  getGitHubRepos(): Promise<GitHubRepo[]>;
-  getGitHubRepo(id: number): Promise<GitHubRepo | undefined>;
-  createGitHubRepo(repo: Omit<GitHubRepo, 'id'>): Promise<GitHubRepo>;
-  updateGitHubRepo(id: number, repo: Partial<GitHubRepo>): Promise<GitHubRepo | undefined>;
-  deleteGitHubRepo(id: number): Promise<boolean>;
+  getAllRepos(): Promise<GithubRepo[]>;
+  getRepo(id: number): Promise<GithubRepo | undefined>;
+  getRepoByRepoId(repoId: number): Promise<GithubRepo | undefined>;
+  createRepo(repo: InsertGithubRepo): Promise<GithubRepo>;
+  updateRepo(id: number, updates: Partial<InsertGithubRepo>): Promise<GithubRepo | undefined>;
+  deleteRepo(id: number): Promise<boolean>;
+
+  // GitHub Commits
+  getAllCommits(): Promise<GithubCommit[]>;
+  getCommitsByRepo(repoId: number): Promise<GithubCommit[]>;
+  createCommit(commit: InsertGithubCommit): Promise<GithubCommit>;
 
   // Emails
-  getEmails(): Promise<Email[]>;
+  getAllEmails(): Promise<Email[]>;
   getEmail(id: number): Promise<Email | undefined>;
   createEmail(email: InsertEmail): Promise<Email>;
-  updateEmail(id: number, email: Partial<Email>): Promise<Email | undefined>;
+  updateEmail(id: number, updates: Partial<Email>): Promise<Email | undefined>;
+  deleteEmail(id: number): Promise<boolean>;
   getEmailsByStatus(status: string): Promise<Email[]>;
 
   // Reports
-  getReports(): Promise<Report[]>;
+  getAllReports(): Promise<Report[]>;
   getReport(id: number): Promise<Report | undefined>;
   createReport(report: InsertReport): Promise<Report>;
-  updateReport(id: number, report: Partial<Report>): Promise<Report | undefined>;
+  updateReport(id: number, updates: Partial<Report>): Promise<Report | undefined>;
   deleteReport(id: number): Promise<boolean>;
 
-  // Documents
-  getDocuments(): Promise<Document[]>;
-  getDocument(id: number): Promise<Document | undefined>;
-  createDocument(document: InsertDocument): Promise<Document>;
-  updateDocument(id: number, document: Partial<Document>): Promise<Document | undefined>;
-  deleteDocument(id: number): Promise<boolean>;
-  getDocumentsByCategory(category: string): Promise<Document[]>;
+  // Documentation
+  getAllDocumentation(): Promise<Documentation[]>;
+  getDocumentation(id: number): Promise<Documentation | undefined>;
+  createDocumentation(doc: InsertDocumentation): Promise<Documentation>;
+  updateDocumentation(id: number, updates: Partial<InsertDocumentation>): Promise<Documentation | undefined>;
+  deleteDocumentation(id: number): Promise<boolean>;
+  getDocumentationByCategory(category: string): Promise<Documentation[]>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private tasks: Map<number, Task>;
-  private githubRepos: Map<number, GitHubRepo>;
+  private githubRepos: Map<number, GithubRepo>;
+  private githubCommits: Map<number, GithubCommit>;
   private emails: Map<number, Email>;
   private reports: Map<number, Report>;
-  private documents: Map<number, Document>;
-  private currentId: number;
+  private documentation: Map<number, Documentation>;
+  
+  private currentUserId: number;
+  private currentTaskId: number;
+  private currentRepoId: number;
+  private currentCommitId: number;
+  private currentEmailId: number;
+  private currentReportId: number;
+  private currentDocId: number;
 
   constructor() {
     this.users = new Map();
     this.tasks = new Map();
     this.githubRepos = new Map();
+    this.githubCommits = new Map();
     this.emails = new Map();
     this.reports = new Map();
-    this.documents = new Map();
-    this.currentId = 1;
+    this.documentation = new Map();
+    
+    this.currentUserId = 1;
+    this.currentTaskId = 1;
+    this.currentRepoId = 1;
+    this.currentCommitId = 1;
+    this.currentEmailId = 1;
+    this.currentReportId = 1;
+    this.currentDocId = 1;
   }
 
   // User methods
@@ -79,16 +103,16 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
+    const id = this.currentUserId++;
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
   }
 
   // Task methods
-  async getTasks(): Promise<Task[]> {
+  async getAllTasks(): Promise<Task[]> {
     return Array.from(this.tasks.values()).sort((a, b) => 
-      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
@@ -97,26 +121,25 @@ export class MemStorage implements IStorage {
   }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
-    const id = this.currentId++;
-    const now = new Date();
+    const id = this.currentTaskId++;
     const task: Task = { 
       ...insertTask, 
       id, 
-      createdAt: now,
-      updatedAt: now
+      createdAt: new Date(),
+      completedAt: null
     };
     this.tasks.set(id, task);
     return task;
   }
 
-  async updateTask(id: number, taskUpdate: Partial<InsertTask>): Promise<Task | undefined> {
-    const existingTask = this.tasks.get(id);
-    if (!existingTask) return undefined;
-
-    const updatedTask: Task = {
-      ...existingTask,
-      ...taskUpdate,
-      updatedAt: new Date()
+  async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task | undefined> {
+    const task = this.tasks.get(id);
+    if (!task) return undefined;
+    
+    const updatedTask: Task = { 
+      ...task, 
+      ...updates,
+      completedAt: updates.status === 'completed' ? new Date() : task.completedAt
     };
     this.tasks.set(id, updatedTask);
     return updatedTask;
@@ -135,40 +158,78 @@ export class MemStorage implements IStorage {
   }
 
   // GitHub Repo methods
-  async getGitHubRepos(): Promise<GitHubRepo[]> {
+  async getAllRepos(): Promise<GithubRepo[]> {
     return Array.from(this.githubRepos.values()).sort((a, b) => 
-      new Date(b.lastSync || 0).getTime() - new Date(a.lastSync || 0).getTime()
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
   }
 
-  async getGitHubRepo(id: number): Promise<GitHubRepo | undefined> {
+  async getRepo(id: number): Promise<GithubRepo | undefined> {
     return this.githubRepos.get(id);
   }
 
-  async createGitHubRepo(repo: Omit<GitHubRepo, 'id'>): Promise<GitHubRepo> {
-    const id = this.currentId++;
-    const githubRepo: GitHubRepo = { ...repo, id };
-    this.githubRepos.set(id, githubRepo);
-    return githubRepo;
+  async getRepoByRepoId(repoId: number): Promise<GithubRepo | undefined> {
+    return Array.from(this.githubRepos.values()).find(repo => repo.repoId === repoId);
   }
 
-  async updateGitHubRepo(id: number, repoUpdate: Partial<GitHubRepo>): Promise<GitHubRepo | undefined> {
-    const existingRepo = this.githubRepos.get(id);
-    if (!existingRepo) return undefined;
+  async createRepo(insertRepo: InsertGithubRepo): Promise<GithubRepo> {
+    const id = this.currentRepoId++;
+    const repo: GithubRepo = { 
+      ...insertRepo, 
+      id, 
+      lastSyncAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.githubRepos.set(id, repo);
+    return repo;
+  }
 
-    const updatedRepo: GitHubRepo = { ...existingRepo, ...repoUpdate };
+  async updateRepo(id: number, updates: Partial<InsertGithubRepo>): Promise<GithubRepo | undefined> {
+    const repo = this.githubRepos.get(id);
+    if (!repo) return undefined;
+    
+    const updatedRepo: GithubRepo = { 
+      ...repo, 
+      ...updates,
+      updatedAt: new Date()
+    };
     this.githubRepos.set(id, updatedRepo);
     return updatedRepo;
   }
 
-  async deleteGitHubRepo(id: number): Promise<boolean> {
+  async deleteRepo(id: number): Promise<boolean> {
     return this.githubRepos.delete(id);
   }
 
+  // GitHub Commit methods
+  async getAllCommits(): Promise<GithubCommit[]> {
+    return Array.from(this.githubCommits.values()).sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }
+
+  async getCommitsByRepo(repoId: number): Promise<GithubCommit[]> {
+    return Array.from(this.githubCommits.values())
+      .filter(commit => commit.repoId === repoId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async createCommit(insertCommit: InsertGithubCommit): Promise<GithubCommit> {
+    const id = this.currentCommitId++;
+    const commit: GithubCommit = { 
+      ...insertCommit, 
+      id, 
+      createdAt: new Date()
+    };
+    this.githubCommits.set(id, commit);
+    return commit;
+  }
+
   // Email methods
-  async getEmails(): Promise<Email[]> {
+  async getAllEmails(): Promise<Email[]> {
     return Array.from(this.emails.values()).sort((a, b) => 
-      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
@@ -177,23 +238,30 @@ export class MemStorage implements IStorage {
   }
 
   async createEmail(insertEmail: InsertEmail): Promise<Email> {
-    const id = this.currentId++;
+    const id = this.currentEmailId++;
     const email: Email = { 
       ...insertEmail, 
       id, 
+      status: "pending",
+      sentAt: null,
+      openedAt: null,
       createdAt: new Date()
     };
     this.emails.set(id, email);
     return email;
   }
 
-  async updateEmail(id: number, emailUpdate: Partial<Email>): Promise<Email | undefined> {
-    const existingEmail = this.emails.get(id);
-    if (!existingEmail) return undefined;
-
-    const updatedEmail: Email = { ...existingEmail, ...emailUpdate };
+  async updateEmail(id: number, updates: Partial<Email>): Promise<Email | undefined> {
+    const email = this.emails.get(id);
+    if (!email) return undefined;
+    
+    const updatedEmail: Email = { ...email, ...updates };
     this.emails.set(id, updatedEmail);
     return updatedEmail;
+  }
+
+  async deleteEmail(id: number): Promise<boolean> {
+    return this.emails.delete(id);
   }
 
   async getEmailsByStatus(status: string): Promise<Email[]> {
@@ -201,9 +269,9 @@ export class MemStorage implements IStorage {
   }
 
   // Report methods
-  async getReports(): Promise<Report[]> {
+  async getAllReports(): Promise<Report[]> {
     return Array.from(this.reports.values()).sort((a, b) => 
-      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
@@ -212,21 +280,24 @@ export class MemStorage implements IStorage {
   }
 
   async createReport(insertReport: InsertReport): Promise<Report> {
-    const id = this.currentId++;
+    const id = this.currentReportId++;
     const report: Report = { 
       ...insertReport, 
       id, 
+      status: "pending",
+      data: null,
+      generatedAt: null,
       createdAt: new Date()
     };
     this.reports.set(id, report);
     return report;
   }
 
-  async updateReport(id: number, reportUpdate: Partial<Report>): Promise<Report | undefined> {
-    const existingReport = this.reports.get(id);
-    if (!existingReport) return undefined;
-
-    const updatedReport: Report = { ...existingReport, ...reportUpdate };
+  async updateReport(id: number, updates: Partial<Report>): Promise<Report | undefined> {
+    const report = this.reports.get(id);
+    if (!report) return undefined;
+    
+    const updatedReport: Report = { ...report, ...updates };
     this.reports.set(id, updatedReport);
     return updatedReport;
   }
@@ -235,49 +306,52 @@ export class MemStorage implements IStorage {
     return this.reports.delete(id);
   }
 
-  // Document methods
-  async getDocuments(): Promise<Document[]> {
-    return Array.from(this.documents.values()).sort((a, b) => 
-      new Date(b.updatedAt!).getTime() - new Date(a.updatedAt!).getTime()
+  // Documentation methods
+  async getAllDocumentation(): Promise<Documentation[]> {
+    return Array.from(this.documentation.values()).sort((a, b) => 
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
   }
 
-  async getDocument(id: number): Promise<Document | undefined> {
-    return this.documents.get(id);
+  async getDocumentation(id: number): Promise<Documentation | undefined> {
+    return this.documentation.get(id);
   }
 
-  async createDocument(insertDocument: InsertDocument): Promise<Document> {
-    const id = this.currentId++;
-    const now = new Date();
-    const document: Document = { 
-      ...insertDocument, 
+  async createDocumentation(insertDoc: InsertDocumentation): Promise<Documentation> {
+    const id = this.currentDocId++;
+    const doc: Documentation = { 
+      ...insertDoc, 
       id, 
-      createdAt: now,
-      updatedAt: now
-    };
-    this.documents.set(id, document);
-    return document;
-  }
-
-  async updateDocument(id: number, documentUpdate: Partial<Document>): Promise<Document | undefined> {
-    const existingDocument = this.documents.get(id);
-    if (!existingDocument) return undefined;
-
-    const updatedDocument: Document = {
-      ...existingDocument,
-      ...documentUpdate,
+      filePath: null,
+      publishedAt: null,
+      createdAt: new Date(),
       updatedAt: new Date()
     };
-    this.documents.set(id, updatedDocument);
-    return updatedDocument;
+    this.documentation.set(id, doc);
+    return doc;
   }
 
-  async deleteDocument(id: number): Promise<boolean> {
-    return this.documents.delete(id);
+  async updateDocumentation(id: number, updates: Partial<InsertDocumentation>): Promise<Documentation | undefined> {
+    const doc = this.documentation.get(id);
+    if (!doc) return undefined;
+    
+    const updatedDoc: Documentation = { 
+      ...doc, 
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.documentation.set(id, updatedDoc);
+    return updatedDoc;
   }
 
-  async getDocumentsByCategory(category: string): Promise<Document[]> {
-    return Array.from(this.documents.values()).filter(doc => doc.category === category);
+  async deleteDocumentation(id: number): Promise<boolean> {
+    return this.documentation.delete(id);
+  }
+
+  async getDocumentationByCategory(category: string): Promise<Documentation[]> {
+    return Array.from(this.documentation.values())
+      .filter(doc => doc.category === category)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 }
 

@@ -1,63 +1,47 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { ChartLine, Github, Mail, BarChart3 } from "lucide-react";
 import { TaskChart } from "@/components/charts/task-chart";
 import { GitHubChart } from "@/components/charts/github-chart";
-import { api } from "@/lib/api";
-import { 
-  CheckSquare, 
-  Github, 
-  Mail, 
-  FileBarChart,
-  Clock,
-  GitCommit,
-  Users
-} from "lucide-react";
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
-    queryFn: api.dashboard.getStats,
   });
 
-  const { data: recentActivity, isLoading: activityLoading } = useQuery({
-    queryKey: ["/api/dashboard/recent-activity"],
-    queryFn: api.dashboard.getRecentActivity,
-  });
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case "task":
-        return <CheckSquare className="h-4 w-4 text-white" />;
-      case "github":
-        return <Github className="h-4 w-4 text-white" />;
-      case "email":
-        return <Mail className="h-4 w-4 text-white" />;
-      default:
-        return <Clock className="h-4 w-4 text-white" />;
-    }
-  };
-
-  const getActivityIconBg = (type: string) => {
-    switch (type) {
-      case "task":
-        return "bg-primary";
-      case "github":
-        return "bg-green-500";
-      case "email":
-        return "bg-orange-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
+  const StatCard = ({ title, value, icon: Icon, change, color }: any) => (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500">{title}</p>
+            <p className="text-3xl font-semibold text-gray-900">{value || 0}</p>
+          </div>
+          <div className={`w-12 h-12 ${color} bg-opacity-10 rounded-lg flex items-center justify-center`}>
+            <Icon className={`${color.replace('bg-', 'text-')} w-6 h-6`} />
+          </div>
+        </div>
+        {change && (
+          <div className="mt-4 flex items-center">
+            <span className="text-success text-sm font-medium">{change}</span>
+            <span className="text-gray-500 text-sm ml-2">from last week</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   if (statsLoading) {
     return (
-      <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-20 bg-muted rounded"></div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -67,157 +51,93 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 overflow-y-auto h-full custom-scrollbar">
+    <div className="space-y-8">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="stats-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Tasks</p>
-                <p className="text-3xl font-semibold text-foreground">
-                  {stats?.activeTasks || 0}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-primary bg-opacity-10 rounded-lg flex items-center justify-center">
-                <CheckSquare className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center">
-              <span className="text-green-600 text-sm font-medium">+12%</span>
-              <span className="text-muted-foreground text-sm ml-2">from last week</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="stats-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">GitHub Repos</p>
-                <p className="text-3xl font-semibold text-foreground">
-                  {stats?.githubRepos || 0}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-500 bg-opacity-10 rounded-lg flex items-center justify-center">
-                <Github className="h-6 w-6 text-green-500" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center">
-              <span className="text-green-600 text-sm font-medium">+2</span>
-              <span className="text-muted-foreground text-sm ml-2">new this month</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="stats-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Emails Sent</p>
-                <p className="text-3xl font-semibold text-foreground">
-                  {stats?.emailsSent || 0}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-500 bg-opacity-10 rounded-lg flex items-center justify-center">
-                <Mail className="h-6 w-6 text-orange-500" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center">
-              <span className="text-green-600 text-sm font-medium">+8%</span>
-              <span className="text-muted-foreground text-sm ml-2">from last week</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="stats-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Reports Generated</p>
-                <p className="text-3xl font-semibold text-foreground">
-                  {stats?.reportsGenerated || 0}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-purple-500 bg-opacity-10 rounded-lg flex items-center justify-center">
-                <FileBarChart className="h-6 w-6 text-purple-500" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center">
-              <span className="text-green-600 text-sm font-medium">+3</span>
-              <span className="text-muted-foreground text-sm ml-2">this week</span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Active Tasks"
+          value={stats?.activeTasks}
+          icon={ChartLine}
+          change="+12%"
+          color="bg-primary"
+        />
+        <StatCard
+          title="GitHub Repos"
+          value={stats?.githubRepos}
+          icon={Github}
+          change="+2 new this month"
+          color="bg-success"
+        />
+        <StatCard
+          title="Emails Sent"
+          value={stats?.emailsSent}
+          icon={Mail}
+          change="+8%"
+          color="bg-warning"
+        />
+        <StatCard
+          title="Reports Generated"
+          value={stats?.reportsGenerated}
+          icon={BarChart3}
+          change="+3 this week"
+          color="bg-purple-500"
+        />
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <Card className="chart-container">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-foreground">
-              Task Completion Trends
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TaskChart />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Completion Trends</h3>
+            <div className="h-64">
+              <TaskChart />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="chart-container">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-foreground">
-              GitHub Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <GitHubChart />
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">GitHub Activity</h3>
+            <div className="h-64">
+              <GitHubChart />
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Recent Activity */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-foreground">
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {activityLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-4 animate-pulse">
-                  <div className="w-8 h-8 bg-muted rounded-full"></div>
-                  <div className="flex-1">
-                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))}
+        <CardContent className="pt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Recent Activity</h3>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4 py-3 border-b border-gray-100 last:border-b-0">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                <ChartLine className="text-white w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">New task completed: API documentation update</p>
+                <p className="text-xs text-gray-500">2 hours ago</p>
+              </div>
             </div>
-          ) : recentActivity && recentActivity.length > 0 ? (
-            <div className="space-y-4">
-              {recentActivity.map((activity: any, index: number) => (
-                <div key={index} className="flex items-center space-x-4 py-3 border-b border-border last:border-b-0">
-                  <div className={`w-8 h-8 ${getActivityIconBg(activity.type)} rounded-full flex items-center justify-center`}>
-                    {getActivityIcon(activity.type)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {activity.timestamp ? new Date(activity.timestamp).toLocaleString() : 'Unknown time'}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center space-x-4 py-3 border-b border-gray-100 last:border-b-0">
+              <div className="w-8 h-8 bg-success rounded-full flex items-center justify-center">
+                <Github className="text-white w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">GitHub repository synchronized</p>
+                <p className="text-xs text-gray-500">4 hours ago</p>
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No recent activity found</p>
+            <div className="flex items-center space-x-4 py-3 border-b border-gray-100 last:border-b-0">
+              <div className="w-8 h-8 bg-warning rounded-full flex items-center justify-center">
+                <Mail className="text-white w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Email notification sent to team</p>
+                <p className="text-xs text-gray-500">6 hours ago</p>
+              </div>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>

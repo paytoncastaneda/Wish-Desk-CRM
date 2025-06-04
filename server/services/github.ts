@@ -1,159 +1,104 @@
 import { Octokit } from "@octokit/rest";
 import { storage } from "../storage";
-import type { GitHubRepo } from "@shared/schema";
 
 class GitHubService {
   private octokit: Octokit;
 
   constructor() {
-    const token = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN || "";
     this.octokit = new Octokit({
-      auth: token,
+      auth: process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN || "",
     });
   }
 
-  async syncRepositories(): Promise<GitHubRepo[]> {
+  async syncRepositories() {
     try {
+      if (!process.env.GITHUB_TOKEN && !process.env.GITHUB_ACCESS_TOKEN) {
+        console.warn("No GitHub token provided, skipping repository sync");
+        return;
+      }
+
       const { data: repos } = await this.octokit.rest.repos.listForAuthenticatedUser({
         sort: 'updated',
-        direction: 'desc',
         per_page: 100
       });
 
-      const syncedRepos: GitHubRepo[] = [];
-
       for (const repo of repos) {
-        const repoData = {
-          name: repo.name,
-          fullName: repo.full_name,
-          description: repo.description || null,
-          language: repo.language || null,
-          stars: repo.stargazers_count || 0,
-          forks: repo.forks_count || 0,
-          isPrivate: repo.private,
-          lastSync: new Date(),
-          repoData: {
-            url: repo.html_url,
-            cloneUrl: repo.clone_url,
-            defaultBranch: repo.default_branch,
-            updatedAt: repo.updated_at,
-            size: repo.size
-          }
-        };
-
-        // Check if repo already exists
-        const existingRepos = await storage.getGitHubRepos();
-        const existingRepo = existingRepos.find(r => r.fullName === repo.full_name);
-
+        const existingRepo = await storage.getRepoByRepoId(repo.id);
+        
         if (existingRepo) {
-          const updated = await storage.updateGitHubRepo(existingRepo.id, repoData);
-          if (updated) syncedRepos.push(updated);
+          await storage.updateRepo(existingRepo.id, {
+            name: repo.name,
+            fullName: repo.full_name,
+            description: repo.description || undefined,
+            language: repo.language || undefined,
+            stars: repo.stargazers_count,
+            forks: repo.forks_count,
+            isPrivate: repo.private
+          });
         } else {
-          const created = await storage.createGitHubRepo(repoData);
-          syncedRepos.push(created);
+          await storage.createRepo({
+            repoId: repo.id,
+            name: repo.name,
+            fullName: repo.full_name,
+            description: repo.description || undefined,
+            language: repo.language || undefined,
+            stars: repo.stargazers_count,
+            forks: repo.forks_count,
+            isPrivate: repo.private
+          });
         }
-      }
 
-      return syncedRepos;
+        // Sync recent commits
+        await this.syncRepositoryCommits(repo.owner.login, repo.name, repo.id);
+      }
     } catch (error) {
-      console.error('GitHub sync error:', error);
-      throw new Error('Failed to sync GitHub repositories');
+      console.error("GitHub sync error:", error);
+      throw error;
     }
   }
 
-  async getRepositoryStats(): Promise<{
-    totalRepos: number;
-    totalCommits: number;
-    languages: Record<string, number>;
-    recentActivity: Array<{
-      repo: string;
-      commits: number;
-      lastUpdate: string;
-    }>;
-  }> {
+  async syncRepository(repoId: number) {
     try {
-      const repos = await storage.getGitHubRepos();
-      const languages: Record<string, number> = {};
-      let totalCommits = 0;
-      const recentActivity = [];
-
-      for (const repo of repos.slice(0, 10)) { // Limit to recent repos
-        if (repo.language) {
-          languages[repo.language] = (languages[repo.language] || 0) + 1;
-        }
-
-        try {
-          const { data: commits } = await this.octokit.rest.repos.listCommits({
-            owner: repo.fullName.split('/')[0],
-            repo: repo.name,
-            since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // Last 30 days
-            per_page: 100
-          });
-
-          totalCommits += commits.length;
-          recentActivity.push({
-            repo: repo.name,
-            commits: commits.length,
-            lastUpdate: repo.repoData?.updatedAt || repo.lastSync?.toISOString() || ''
-          });
-        } catch (error) {
-          console.error(`Error fetching commits for ${repo.name}:`, error);
-        }
+      const repo = await storage.getRepo(repoId);
+      if (!repo) {
+        throw new Error("Repository not found");
       }
 
-      return {
-        totalRepos: repos.length,
-        totalCommits,
-        languages,
-        recentActivity: recentActivity.sort((a, b) => b.commits - a.commits)
-      };
+      const [owner, name] = repo.fullName.split('/');
+      await this.syncRepositoryCommits(owner, name, repo.repoId);
+      
+      // Update last sync time
+      await storage.updateRepo(repoId, {});
     } catch (error) {
-      console.error('Error getting repository stats:', error);
-      throw new Error('Failed to get repository statistics');
+      console.error("Repository sync error:", error);
+      throw error;
     }
   }
 
-  async getRepositoryDetails(repoId: number): Promise<{
-    repo: GitHubRepo;
-    commits: Array<any>;
-    issues: Array<any>;
-    pullRequests: Array<any>;
-  } | null> {
+  private async syncRepositoryCommits(owner: string, repo: string, repoId: number) {
     try {
-      const repo = await storage.getGitHubRepo(repoId);
-      if (!repo) return null;
-
-      const [owner, repoName] = repo.fullName.split('/');
-
-      const [commitsResponse, issuesResponse, pullsResponse] = await Promise.all([
-        this.octokit.rest.repos.listCommits({
-          owner,
-          repo: repoName,
-          per_page: 20
-        }),
-        this.octokit.rest.issues.listForRepo({
-          owner,
-          repo: repoName,
-          state: 'all',
-          per_page: 20
-        }),
-        this.octokit.rest.pulls.list({
-          owner,
-          repo: repoName,
-          state: 'all',
-          per_page: 20
-        })
-      ]);
-
-      return {
+      const { data: commits } = await this.octokit.rest.repos.listCommits({
+        owner,
         repo,
-        commits: commitsResponse.data,
-        issues: issuesResponse.data,
-        pullRequests: pullsResponse.data
-      };
+        per_page: 50
+      });
+
+      for (const commit of commits) {
+        const existingCommits = await storage.getCommitsByRepo(repoId);
+        const exists = existingCommits.some(c => c.sha === commit.sha);
+        
+        if (!exists) {
+          await storage.createCommit({
+            repoId,
+            sha: commit.sha,
+            message: commit.commit.message,
+            author: commit.commit.author?.name || 'Unknown',
+            date: new Date(commit.commit.author?.date || Date.now())
+          });
+        }
+      }
     } catch (error) {
-      console.error('Error getting repository details:', error);
-      throw new Error('Failed to get repository details');
+      console.error("Commit sync error:", error);
     }
   }
 }

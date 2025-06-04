@@ -4,168 +4,136 @@ import { storage } from "./storage";
 import { githubService } from "./services/github";
 import { emailService } from "./services/email";
 import { reportsService } from "./services/reports";
-import { docsService } from "./services/docs";
-import { 
-  insertTaskSchema, 
-  insertEmailSchema, 
-  insertReportSchema,
-  insertDocumentSchema 
-} from "@shared/schema";
+import { documentationService } from "./services/documentation";
+import { insertTaskSchema, insertEmailSchema, insertReportSchema, insertDocumentationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Dashboard API routes
+  // Dashboard stats
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      const tasks = await storage.getTasks();
-      const repos = await storage.getGitHubRepos();
-      const emailStats = await emailService.getEmailStats();
-      const reports = await storage.getReports();
+      const tasks = await storage.getAllTasks();
+      const repos = await storage.getAllRepos();
+      const emails = await storage.getAllEmails();
+      const reports = await storage.getAllReports();
 
-      const activeTasks = tasks.filter(task => task.status !== "completed").length;
-      const reportsGenerated = reports.length;
+      const activeTasks = tasks.filter(task => task.status !== 'completed').length;
+      const emailsSent = emails.filter(email => email.status === 'sent').length;
+      const reportsGenerated = reports.filter(report => report.status === 'completed').length;
 
       res.json({
         activeTasks,
         githubRepos: repos.length,
-        emailsSent: emailStats.totalSent,
+        emailsSent,
         reportsGenerated
       });
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch dashboard stats" });
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
     }
   });
 
-  app.get("/api/dashboard/recent-activity", async (req, res) => {
+  // Task analytics
+  app.get("/api/dashboard/task-analytics", async (req, res) => {
     try {
-      const tasks = await storage.getTasks();
-      const repos = await storage.getGitHubRepos();
-      const emails = await storage.getEmails();
+      const tasks = await storage.getAllTasks();
+      const completedTasks = tasks.filter(task => task.status === 'completed');
+      
+      // Group by day for the last 7 days
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        return date.toISOString().split('T')[0];
+      }).reverse();
 
-      const recentTasks = tasks
-        .filter(task => task.updatedAt && task.status === "completed")
-        .sort((a, b) => new Date(b.updatedAt!).getTime() - new Date(a.updatedAt!).getTime())
-        .slice(0, 3);
+      const taskData = last7Days.map(date => {
+        const dayTasks = completedTasks.filter(task => 
+          task.completedAt && task.completedAt.toISOString().split('T')[0] === date
+        );
+        return {
+          date,
+          completed: dayTasks.length
+        };
+      });
 
-      const recentRepos = repos
-        .filter(repo => repo.lastSync)
-        .sort((a, b) => new Date(b.lastSync!).getTime() - new Date(a.lastSync!).getTime())
-        .slice(0, 2);
-
-      const recentEmails = emails
-        .filter(email => email.status === "sent")
-        .sort((a, b) => new Date(b.sentAt!).getTime() - new Date(a.sentAt!).getTime())
-        .slice(0, 2);
-
-      const activities = [
-        ...recentTasks.map(task => ({
-          type: "task",
-          message: `Task "${task.title}" completed`,
-          timestamp: task.updatedAt,
-          icon: "check"
-        })),
-        ...recentRepos.map(repo => ({
-          type: "github",
-          message: `New repository "${repo.name}" synced from GitHub`,
-          timestamp: repo.lastSync,
-          icon: "github"
-        })),
-        ...recentEmails.map(email => ({
-          type: "email",
-          message: `Email "${email.subject}" sent successfully`,
-          timestamp: email.sentAt,
-          icon: "envelope"
-        }))
-      ]
-      .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
-      .slice(0, 5);
-
-      res.json(activities);
+      res.json(taskData);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch recent activity" });
+      res.status(500).json({ message: "Failed to fetch task analytics" });
     }
   });
 
-  // Task Management API routes
+  // GitHub analytics
+  app.get("/api/dashboard/github-analytics", async (req, res) => {
+    try {
+      const commits = await storage.getAllCommits();
+      
+      // Group by week for the last 4 weeks
+      const last4Weeks = Array.from({ length: 4 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (i * 7));
+        return {
+          week: `Week ${4 - i}`,
+          startDate: new Date(date.getTime() - (6 * 24 * 60 * 60 * 1000)),
+          endDate: date
+        };
+      });
+
+      const githubData = last4Weeks.map(week => {
+        const weekCommits = commits.filter(commit => 
+          commit.date >= week.startDate && commit.date <= week.endDate
+        );
+        return {
+          week: week.week,
+          commits: weekCommits.length
+        };
+      });
+
+      res.json(githubData);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch GitHub analytics" });
+    }
+  });
+
+  // Tasks CRUD
   app.get("/api/tasks", async (req, res) => {
     try {
-      const { status, priority, search } = req.query;
-      let tasks = await storage.getTasks();
-
-      if (status && status !== "all") {
+      const { status, priority } = req.query;
+      let tasks = await storage.getAllTasks();
+      
+      if (status && status !== 'all') {
         tasks = tasks.filter(task => task.status === status);
       }
-
-      if (priority && priority !== "all") {
+      if (priority && priority !== 'all') {
         tasks = tasks.filter(task => task.priority === priority);
       }
-
-      if (search) {
-        const searchTerm = String(search).toLowerCase();
-        tasks = tasks.filter(task => 
-          task.title.toLowerCase().includes(searchTerm) ||
-          task.description?.toLowerCase().includes(searchTerm)
-        );
-      }
-
+      
       res.json(tasks);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch tasks" });
+      res.status(500).json({ message: "Failed to fetch tasks" });
     }
   });
 
   app.post("/api/tasks", async (req, res) => {
     try {
-      const taskData = insertTaskSchema.parse(req.body);
-      const task = await storage.createTask(taskData);
-
-      // Send assignment email if task is assigned
-      if (task.assignedTo) {
-        try {
-          await emailService.sendTaskAssignmentEmail({
-            to: task.assignedTo,
-            taskTitle: task.title,
-            taskDescription: task.description || "",
-            taskPriority: task.priority,
-            taskDueDate: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"
-          });
-        } catch (emailError) {
-          console.error("Failed to send assignment email:", emailError);
-        }
-      }
-
+      const validatedData = insertTaskSchema.parse(req.body);
+      const task = await storage.createTask(validatedData);
       res.status(201).json(task);
     } catch (error) {
-      res.status(400).json({ error: "Invalid task data" });
+      res.status(400).json({ message: "Invalid task data" });
     }
   });
 
   app.put("/api/tasks/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const taskData = insertTaskSchema.partial().parse(req.body);
-      const task = await storage.updateTask(id, taskData);
-
+      const validatedData = insertTaskSchema.partial().parse(req.body);
+      const task = await storage.updateTask(id, validatedData);
+      
       if (!task) {
-        return res.status(404).json({ error: "Task not found" });
+        return res.status(404).json({ message: "Task not found" });
       }
-
-      // Send completion email if task was completed
-      if (taskData.status === "completed" && task.assignedTo) {
-        try {
-          await emailService.sendTaskCompletionEmail({
-            to: task.assignedTo,
-            taskTitle: task.title,
-            completedBy: task.assignedTo,
-            completionDate: new Date().toLocaleDateString()
-          });
-        } catch (emailError) {
-          console.error("Failed to send completion email:", emailError);
-        }
-      }
-
+      
       res.json(task);
     } catch (error) {
-      res.status(400).json({ error: "Invalid task data" });
+      res.status(400).json({ message: "Invalid task data" });
     }
   });
 
@@ -173,256 +141,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteTask(id);
-
+      
       if (!deleted) {
-        return res.status(404).json({ error: "Task not found" });
+        return res.status(404).json({ message: "Task not found" });
       }
-
+      
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete task" });
+      res.status(500).json({ message: "Failed to delete task" });
     }
   });
 
-  // GitHub Integration API routes
+  // GitHub integration
   app.get("/api/github/repos", async (req, res) => {
     try {
-      const repos = await storage.getGitHubRepos();
+      const repos = await storage.getAllRepos();
       res.json(repos);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch repositories" });
+      res.status(500).json({ message: "Failed to fetch repositories" });
     }
   });
 
   app.post("/api/github/sync", async (req, res) => {
     try {
-      const repos = await githubService.syncRepositories();
-      res.json({ message: "Sync completed", count: repos.length });
+      await githubService.syncRepositories();
+      res.json({ message: "GitHub sync initiated" });
     } catch (error) {
-      res.status(500).json({ error: "Failed to sync repositories" });
+      res.status(500).json({ message: "Failed to sync GitHub repositories" });
     }
   });
 
-  app.get("/api/github/stats", async (req, res) => {
-    try {
-      const stats = await githubService.getRepositoryStats();
-      res.json(stats);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch GitHub stats" });
-    }
-  });
-
-  app.get("/api/github/repos/:id", async (req, res) => {
+  app.post("/api/github/repos/:id/sync", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const details = await githubService.getRepositoryDetails(id);
-
-      if (!details) {
-        return res.status(404).json({ error: "Repository not found" });
-      }
-
-      res.json(details);
+      await githubService.syncRepository(id);
+      res.json({ message: "Repository sync initiated" });
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch repository details" });
+      res.status(500).json({ message: "Failed to sync repository" });
     }
   });
 
-  // Email API routes
+  app.get("/api/github/status", async (req, res) => {
+    try {
+      const repos = await storage.getAllRepos();
+      const commits = await storage.getAllCommits();
+      
+      const lastSyncRepo = repos.reduce((latest, repo) => {
+        if (!latest || !repo.lastSyncAt) return latest;
+        if (!latest.lastSyncAt || repo.lastSyncAt > latest.lastSyncAt) return repo;
+        return latest;
+      }, repos[0]);
+
+      const recentCommits = commits.filter(commit => {
+        const dayAgo = new Date();
+        dayAgo.setDate(dayAgo.getDate() - 1);
+        return commit.date >= dayAgo;
+      });
+
+      res.json({
+        repos: repos.length,
+        lastSync: lastSyncRepo?.lastSyncAt ? `${Math.floor((Date.now() - lastSyncRepo.lastSyncAt.getTime()) / (1000 * 60 * 60))} hrs ago` : 'Never',
+        commits: recentCommits.length
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch GitHub status" });
+    }
+  });
+
+  // Email management
   app.get("/api/emails", async (req, res) => {
     try {
-      const emails = await storage.getEmails();
+      const emails = await storage.getAllEmails();
       res.json(emails);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch emails" });
+      res.status(500).json({ message: "Failed to fetch emails" });
     }
   });
 
   app.post("/api/emails", async (req, res) => {
     try {
-      const emailData = insertEmailSchema.parse(req.body);
-      const email = await emailService.sendEmail(emailData);
+      const validatedData = insertEmailSchema.parse(req.body);
+      const email = await storage.createEmail(validatedData);
+      
+      // Send email
+      await emailService.sendEmail(email.id);
+      
       res.status(201).json(email);
     } catch (error) {
-      res.status(400).json({ error: "Invalid email data" });
-    }
-  });
-
-  app.get("/api/emails/templates", async (req, res) => {
-    try {
-      const templates = emailService.getTemplates();
-      res.json(templates);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch email templates" });
+      res.status(400).json({ message: "Failed to create email" });
     }
   });
 
   app.get("/api/emails/stats", async (req, res) => {
     try {
-      const stats = await emailService.getEmailStats();
-      res.json(stats);
+      const emails = await storage.getAllEmails();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const sentToday = emails.filter(email => 
+        email.sentAt && email.sentAt >= today
+      ).length;
+      
+      const totalSent = emails.filter(email => email.status === 'sent').length;
+      const totalOpened = emails.filter(email => email.openedAt).length;
+      const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
+      
+      const pending = emails.filter(email => email.status === 'pending').length;
+
+      res.json({
+        sentToday,
+        openRate,
+        pending
+      });
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch email stats" });
+      res.status(500).json({ message: "Failed to fetch email stats" });
     }
   });
 
-  // Reports API routes
+  // Reports
   app.get("/api/reports", async (req, res) => {
     try {
-      const reports = await storage.getReports();
+      const reports = await storage.getAllReports();
       res.json(reports);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch reports" });
+      res.status(500).json({ message: "Failed to fetch reports" });
     }
   });
 
-  app.get("/api/reports/templates", async (req, res) => {
+  app.post("/api/reports", async (req, res) => {
     try {
-      const templates = reportsService.getAvailableReports();
-      res.json(templates);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch report templates" });
-    }
-  });
-
-  app.post("/api/reports/generate", async (req, res) => {
-    try {
-      const { type, parameters } = req.body;
-      const report = await reportsService.generateReport(type, parameters);
+      const validatedData = insertReportSchema.parse(req.body);
+      const report = await storage.createReport(validatedData);
+      
+      // Generate report
+      reportsService.generateReport(report.id);
+      
       res.status(201).json(report);
     } catch (error) {
-      res.status(400).json({ error: "Failed to generate report" });
+      res.status(400).json({ message: "Failed to create report" });
     }
   });
 
-  app.get("/api/reports/:id", async (req, res) => {
+  app.get("/api/reports/:id/download", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const report = await storage.getReport(id);
-
+      
       if (!report) {
-        return res.status(404).json({ error: "Report not found" });
+        return res.status(404).json({ message: "Report not found" });
       }
-
-      res.json(report);
+      
+      const fileBuffer = await reportsService.exportReport(id, req.query.format as string);
+      
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${report.title}.${req.query.format || 'pdf'}"`);
+      res.send(fileBuffer);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch report" });
+      res.status(500).json({ message: "Failed to download report" });
     }
   });
 
-  app.get("/api/reports/:id/content", async (req, res) => {
+  // Documentation
+  app.get("/api/documentation", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const content = await reportsService.getReportContent(id);
-
-      if (!content) {
-        return res.status(404).json({ error: "Report content not found" });
-      }
-
-      res.setHeader('Content-Type', 'text/markdown');
-      res.send(content);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch report content" });
-    }
-  });
-
-  // Documentation API routes
-  app.get("/api/docs", async (req, res) => {
-    try {
-      const { category, search } = req.query;
-      let documents = await storage.getDocuments();
-
+      const { category } = req.query;
+      let docs = await storage.getAllDocumentation();
+      
       if (category) {
-        documents = await storage.getDocumentsByCategory(String(category));
+        docs = await storage.getDocumentationByCategory(category as string);
       }
-
-      if (search) {
-        documents = await docsService.searchDocuments(String(search));
-      }
-
-      res.json(documents);
+      
+      res.json(docs);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch documents" });
+      res.status(500).json({ message: "Failed to fetch documentation" });
     }
   });
 
-  app.post("/api/docs", async (req, res) => {
+  app.post("/api/documentation", async (req, res) => {
     try {
-      const docData = insertDocumentSchema.parse(req.body);
-      const document = await docsService.createDocument(docData);
-      res.status(201).json(document);
+      const validatedData = insertDocumentationSchema.parse(req.body);
+      const doc = await storage.createDocumentation(validatedData);
+      
+      // Generate markdown file
+      await documentationService.generateMarkdownFile(doc.id);
+      
+      res.status(201).json(doc);
     } catch (error) {
-      res.status(400).json({ error: "Invalid document data" });
+      res.status(400).json({ message: "Failed to create documentation" });
     }
   });
 
-  app.get("/api/docs/categories/stats", async (req, res) => {
-    try {
-      const stats = await docsService.getCategoryStats();
-      res.json(stats);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch category stats" });
-    }
-  });
-
-  app.get("/api/docs/:id", async (req, res) => {
+  app.put("/api/documentation/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const document = await storage.getDocument(id);
-
-      if (!document) {
-        return res.status(404).json({ error: "Document not found" });
+      const validatedData = insertDocumentationSchema.partial().parse(req.body);
+      const doc = await storage.updateDocumentation(id, validatedData);
+      
+      if (!doc) {
+        return res.status(404).json({ message: "Documentation not found" });
       }
-
-      res.json(document);
+      
+      // Update markdown file
+      await documentationService.generateMarkdownFile(doc.id);
+      
+      res.json(doc);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch document" });
+      res.status(400).json({ message: "Failed to update documentation" });
     }
   });
 
-  app.get("/api/docs/:id/content", async (req, res) => {
+  app.get("/api/documentation/categories", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const content = await docsService.getDocumentContent(id);
-
-      if (!content) {
-        return res.status(404).json({ error: "Document content not found" });
-      }
-
-      res.setHeader('Content-Type', 'text/markdown');
-      res.send(content);
+      const docs = await storage.getAllDocumentation();
+      const categories = docs.reduce((acc, doc) => {
+        acc[doc.category] = (acc[doc.category] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      res.json(categories);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch document content" });
-    }
-  });
-
-  app.put("/api/docs/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const docData = insertDocumentSchema.partial().parse(req.body);
-      const document = await docsService.updateDocument(id, docData);
-
-      if (!document) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      res.json(document);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid document data" });
-    }
-  });
-
-  app.delete("/api/docs/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const deleted = await docsService.deleteDocument(id);
-
-      if (!deleted) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete document" });
+      res.status(500).json({ message: "Failed to fetch documentation categories" });
     }
   });
 

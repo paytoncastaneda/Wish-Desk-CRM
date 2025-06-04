@@ -1,218 +1,100 @@
 import { storage } from "../storage";
-import type { Email, InsertEmail } from "@shared/schema";
-
-interface EmailTemplate {
-  name: string;
-  subject: string;
-  body: string;
-  category: string;
-}
 
 class EmailService {
-  private templates: Map<string, EmailTemplate>;
-
-  constructor() {
-    this.templates = new Map();
-    this.initializeTemplates();
-  }
-
-  private initializeTemplates() {
-    const defaultTemplates: EmailTemplate[] = [
-      {
-        name: "task-assignment",
-        subject: "New Task Assigned: {{taskTitle}}",
-        body: `
-          <h2>You have been assigned a new task</h2>
-          <h3>{{taskTitle}}</h3>
-          <p><strong>Description:</strong> {{taskDescription}}</p>
-          <p><strong>Priority:</strong> {{taskPriority}}</p>
-          <p><strong>Due Date:</strong> {{taskDueDate}}</p>
-          <p>Please log into the CRM to view more details and start working on this task.</p>
-        `,
-        category: "system"
-      },
-      {
-        name: "task-completion",
-        subject: "Task Completed: {{taskTitle}}",
-        body: `
-          <h2>Congratulations! Task completed</h2>
-          <h3>{{taskTitle}}</h3>
-          <p>The task has been marked as completed by {{completedBy}}.</p>
-          <p><strong>Completion Date:</strong> {{completionDate}}</p>
-          <p>Great work on completing this task!</p>
-        `,
-        category: "system"
-      },
-      {
-        name: "weekly-report",
-        subject: "Weekly Performance Report - {{weekOf}}",
-        body: `
-          <h2>Weekly Team Performance Report</h2>
-          <h3>Week of {{weekOf}}</h3>
-          <h4>Summary:</h4>
-          <ul>
-            <li>Tasks Completed: {{tasksCompleted}}</li>
-            <li>New Tasks Created: {{newTasks}}</li>
-            <li>Team Productivity: {{productivity}}%</li>
-          </ul>
-          <p>View the full report in the CRM dashboard for detailed insights.</p>
-        `,
-        category: "custom"
-      }
-    ];
-
-    defaultTemplates.forEach(template => {
-      this.templates.set(template.name, template);
-    });
-  }
-
-  async sendEmail(emailData: InsertEmail): Promise<Email> {
+  async sendEmail(emailId: number) {
     try {
-      // Create email record
-      const email = await storage.createEmail(emailData);
+      const email = await storage.getEmail(emailId);
+      if (!email) {
+        throw new Error("Email not found");
+      }
 
-      // In a real implementation, you would integrate with an email service like:
-      // - SendGrid
-      // - AWS SES
-      // - Nodemailer with SMTP
+      // In a real implementation, this would integrate with an email service
       // For now, we'll simulate sending and mark as sent
+      console.log(`Sending email to ${email.to}: ${email.subject}`);
       
-      await this.simulateEmailSending(email);
+      // Simulate email sending delay
+      setTimeout(async () => {
+        await storage.updateEmail(emailId, {
+          status: "sent",
+          sentAt: new Date()
+        });
+      }, 1000);
 
-      return email;
-    } catch (error) {
-      console.error('Email sending error:', error);
-      throw new Error('Failed to send email');
-    }
-  }
-
-  private async simulateEmailSending(email: Email): Promise<void> {
-    // Simulate email sending delay
-    setTimeout(async () => {
-      await storage.updateEmail(email.id, {
-        status: "sent",
-        sentAt: new Date()
-      });
-
-      // Simulate email opening after some time
+      // Simulate email opening after a delay
       setTimeout(async () => {
         if (Math.random() > 0.3) { // 70% open rate simulation
-          await storage.updateEmail(email.id, {
+          await storage.updateEmail(emailId, {
             openedAt: new Date()
           });
         }
-      }, Math.random() * 3600000); // Random time within 1 hour
-    }, 1000); // 1 second sending delay
+      }, 5000);
+
+    } catch (error) {
+      console.error("Email sending error:", error);
+      await storage.updateEmail(emailId, {
+        status: "failed"
+      });
+      throw error;
+    }
   }
 
-  async sendTaskAssignmentEmail(taskData: {
-    to: string;
-    taskTitle: string;
-    taskDescription: string;
-    taskPriority: string;
-    taskDueDate: string;
-  }): Promise<Email> {
-    const template = this.templates.get("task-assignment");
-    if (!template) throw new Error("Task assignment template not found");
+  async getEmailTemplates() {
+    return [
+      {
+        id: 'task-assignment',
+        name: 'Task Assignment',
+        subject: 'New Task Assigned: {taskTitle}',
+        body: `Hi {assigneeName},
 
-    const subject = this.replaceTemplateVariables(template.subject, taskData);
-    const body = this.replaceTemplateVariables(template.body, taskData);
+You have been assigned a new task:
 
-    return this.sendEmail({
-      to: taskData.to,
-      subject,
-      body,
-      template: "task-assignment",
-      status: "pending"
-    });
-  }
+**{taskTitle}**
+{taskDescription}
 
-  async sendTaskCompletionEmail(taskData: {
-    to: string;
-    taskTitle: string;
-    completedBy: string;
-    completionDate: string;
-  }): Promise<Email> {
-    const template = this.templates.get("task-completion");
-    if (!template) throw new Error("Task completion template not found");
+Priority: {taskPriority}
+Due Date: {taskDueDate}
 
-    const subject = this.replaceTemplateVariables(template.subject, taskData);
-    const body = this.replaceTemplateVariables(template.body, taskData);
+Please log into the Wish Desk CRM to view more details.
 
-    return this.sendEmail({
-      to: taskData.to,
-      subject,
-      body,
-      template: "task-completion",
-      status: "pending"
-    });
-  }
+Best regards,
+Wish Desk CRM Team`
+      },
+      {
+        id: 'task-completion',
+        name: 'Task Completion',
+        subject: 'Task Completed: {taskTitle}',
+        body: `Hi Team,
 
-  async sendWeeklyReport(reportData: {
-    to: string;
-    weekOf: string;
-    tasksCompleted: number;
-    newTasks: number;
-    productivity: number;
-  }): Promise<Email> {
-    const template = this.templates.get("weekly-report");
-    if (!template) throw new Error("Weekly report template not found");
+Great news! The following task has been completed:
 
-    const subject = this.replaceTemplateVariables(template.subject, reportData);
-    const body = this.replaceTemplateVariables(template.body, reportData);
+**{taskTitle}**
+Completed by: {completedBy}
+Completion Date: {completionDate}
 
-    return this.sendEmail({
-      to: reportData.to,
-      subject,
-      body,
-      template: "weekly-report",
-      status: "pending"
-    });
-  }
+Thanks for your hard work!
 
-  private replaceTemplateVariables(template: string, variables: Record<string, any>): string {
-    let result = template;
-    Object.keys(variables).forEach(key => {
-      const placeholder = `{{${key}}}`;
-      result = result.replace(new RegExp(placeholder, 'g'), String(variables[key]));
-    });
-    return result;
-  }
+Best regards,
+Wish Desk CRM Team`
+      },
+      {
+        id: 'weekly-report',
+        name: 'Weekly Report',
+        subject: 'Weekly Team Performance Report - {weekDate}',
+        body: `Hi Team,
 
-  getTemplates(): EmailTemplate[] {
-    return Array.from(this.templates.values());
-  }
+Here's your weekly performance summary:
 
-  getTemplate(name: string): EmailTemplate | undefined {
-    return this.templates.get(name);
-  }
+**Tasks Completed:** {tasksCompleted}
+**Active Tasks:** {activeTasks}
+**GitHub Activity:** {githubCommits} commits
+**Team Productivity:** {productivityScore}%
 
-  async getEmailStats(): Promise<{
-    sentToday: number;
-    openRate: number;
-    pending: number;
-    totalSent: number;
-  }> {
-    const emails = await storage.getEmails();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+Full report is available in the CRM dashboard.
 
-    const sentToday = emails.filter(email => 
-      email.sentAt && new Date(email.sentAt) >= today
-    ).length;
-
-    const sentEmails = emails.filter(email => email.status === "sent");
-    const openedEmails = sentEmails.filter(email => email.openedAt);
-    const openRate = sentEmails.length > 0 ? (openedEmails.length / sentEmails.length) * 100 : 0;
-
-    const pending = emails.filter(email => email.status === "pending").length;
-
-    return {
-      sentToday,
-      openRate: Math.round(openRate),
-      pending,
-      totalSent: sentEmails.length
-    };
+Best regards,
+Wish Desk CRM Team`
+      }
+    ];
   }
 }
 

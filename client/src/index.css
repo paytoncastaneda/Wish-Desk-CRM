@@ -3,58 +3,53 @@
 @tailwind utilities;
 
 :root {
-  --background: 250 100% 98%; /* #FAFAFA */
-  --foreground: 240 10% 3.9%;
-  --muted: 210 40% 94%; /* #E5F3FF */
-  --muted-foreground: 215 16% 47%;
+  --background: 0 0% 98%; /* #FAFAFA */
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
+  --popover-foreground: 20 14.3% 4.1%;
   --card: 0 0% 100%; /* #FFFFFF */
-  --card-foreground: 240 10% 3.9%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
   --primary: 207 90% 54%; /* #1976D2 */
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 94%;
-  --secondary-foreground: 222 84% 4.9%;
-  --accent: 210 40% 94%;
-  --accent-foreground: 222 84% 4.9%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 207 90% 54%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 0 0% 26%; /* #424242 */
+  --secondary-foreground: 0 0% 98%;
+  --accent: 60 4.8% 95.9%;
+  --accent-foreground: 24 9.8% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 20 14.3% 4.1%;
   --radius: 0.5rem;
-
-  /* Custom CRM colors */
   --success: 122 39% 49%; /* #388E3C */
-  --warning: 32 95% 44%; /* #F57C00 */
-  --error: 0 70% 50%; /* #D32F2F */
+  --warning: 35 91% 48%; /* #F57C00 */
+  --error: 0 66% 51%; /* #D32F2F */
+  --surface: 0 0% 100%; /* #FFFFFF */
 }
 
 .dark {
-  --background: 224 71% 4%;
-  --foreground: 213 31% 91%;
-  --muted: 223 47% 11%;
-  --muted-foreground: 215 14% 65%;
-  --popover: 224 71% 4%;
-  --popover-foreground: 215 21% 11%;
-  --card: 224 71% 4%;
-  --card-foreground: 213 31% 91%;
-  --border: 216 34% 17%;
-  --input: 216 34% 17%;
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
   --primary: 207 90% 54%;
-  --primary-foreground: 222 84% 4.9%;
-  --secondary: 222 47% 11%;
-  --secondary-foreground: 213 31% 91%;
-  --accent: 216 34% 17%;
-  --accent-foreground: 213 31% 91%;
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 213 31% 91%;
-  --ring: 216 34% 17%;
-
-  /* Custom CRM colors for dark mode */
-  --success: 122 39% 49%;
-  --warning: 32 95% 44%;
-  --error: 0 70% 50%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
 }
 
 @layer base {
@@ -63,48 +58,61 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 }
 
-@layer components {
-  .sidebar-item {
-    @apply flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer;
+@layer utilities {
+  .success {
+    color: hsl(var(--success));
   }
-
-  .sidebar-item.active {
-    @apply bg-primary text-white hover:bg-primary;
+  
+  .warning {
+    color: hsl(var(--warning));
   }
-
-  .stats-card {
-    @apply bg-card rounded-lg p-6 shadow-sm border border-border;
+  
+  .error {
+    color: hsl(var(--error));
   }
-
-  .chart-container {
-    @apply bg-card rounded-lg p-6 shadow-sm border border-border;
+  
+  .surface {
+    background-color: hsl(var(--surface));
   }
-}
-
-/* Chart.js custom styles */
-.chart-container canvas {
-  max-height: 300px !important;
-}
-
-/* Custom scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+  
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+  
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+  
+  .bg-error {
+    background-color: hsl(var(--error));
+  }
+  
+  .text-success {
+    color: hsl(var(--success));
+  }
+  
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+  
+  .text-error {
+    color: hsl(var(--error));
+  }
+  
+  .border-success {
+    border-color: hsl(var(--success));
+  }
+  
+  .border-warning {
+    border-color: hsl(var(--warning));
+  }
+  
+  .border-error {
+    border-color: hsl(var(--error));
+  }
 }

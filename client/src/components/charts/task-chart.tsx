@@ -1,90 +1,68 @@
-import { useEffect, useRef } from "react";
-import { Chart, registerables } from "chart.js";
+import { useQuery } from "@tanstack/react-query";
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-Chart.register(...registerables);
+export function TaskChart() {
+  const { data: taskData = [], isLoading } = useQuery({
+    queryKey: ["/api/dashboard/task-analytics"],
+  });
 
-interface TaskChartProps {
-  data?: {
-    labels: string[];
-    values: number[];
-  };
-}
-
-export function TaskChart({ data }: TaskChartProps) {
-  const chartRef = useRef<HTMLCanvasElement>(null);
-  const chartInstanceRef = useRef<Chart | null>(null);
-
-  const defaultData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    values: [12, 19, 3, 5, 2, 3, 9]
+  const formatData = (data: any[]) => {
+    return data.map((item) => ({
+      name: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      completed: item.completed,
+      date: item.date
+    }));
   };
 
-  const chartData = data || defaultData;
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-32 mb-4"></div>
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-2 bg-gray-200 rounded" style={{ width: `${Math.random() * 60 + 40}%` }}></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (!chartRef.current) return;
-
-    // Destroy existing chart if it exists
-    if (chartInstanceRef.current) {
-      chartInstanceRef.current.destroy();
-    }
-
-    const ctx = chartRef.current.getContext('2d');
-    if (!ctx) return;
-
-    chartInstanceRef.current = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: chartData.labels,
-        datasets: [{
-          label: 'Tasks Completed',
-          data: chartData.values,
-          borderColor: 'hsl(207, 90%, 54%)', // Primary color
-          backgroundColor: 'hsla(207, 90%, 54%, 0.1)',
-          tension: 0.4,
-          fill: true,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false
-            }
-          },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'hsl(214, 32%, 91%)'
-            }
-          }
-        },
-        elements: {
-          point: {
-            radius: 4,
-            hoverRadius: 6
-          }
-        }
-      }
-    });
-
-    return () => {
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.destroy();
-      }
-    };
-  }, [chartData]);
+  const formattedData = formatData(taskData);
 
   return (
-    <div className="h-64">
-      <canvas ref={chartRef} />
-    </div>
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={formattedData}>
+        <XAxis 
+          dataKey="name" 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: '#6B7280' }}
+        />
+        <YAxis 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: '#6B7280' }}
+        />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E5E7EB',
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          }}
+          labelStyle={{ color: '#374151', fontWeight: 500 }}
+        />
+        <Line
+          type="monotone"
+          dataKey="completed"
+          stroke="#1976D2"
+          strokeWidth={3}
+          dot={{ fill: '#1976D2', strokeWidth: 0, r: 4 }}
+          activeDot={{ r: 6, stroke: '#1976D2', strokeWidth: 2, fill: '#FFFFFF' }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
   );
 }

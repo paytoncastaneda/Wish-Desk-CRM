@@ -419,7 +419,7 @@ export default function Dashboard() {
                   ${Math.round(((salesData as any)?.mtd || 0) * 0.017).toLocaleString()}
                 </span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <div className="flex justify-between items-center p-3 rounded-lg bg-[#e87373]">
                 <span className="text-sm font-medium">Last Month Bonus (1.7%)</span>
                 <span className="text-lg font-semibold text-blue-600">
                   ${Math.round(((salesData as any)?.lastMonth || 0) * 0.017).toLocaleString()}

@@ -105,10 +105,34 @@ export const emails = pgTable("emails", {
   subject: text("subject").notNull(),
   body: text("body").notNull(),
   template: text("template"),
+  templateId: integer("template_id"),
   status: text("status").notNull().default("pending"),
   sentAt: timestamp("sent_at"),
   openedAt: timestamp("opened_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  htmlContent: text("html_content").notNull(),
+  assignedUserId: integer("assigned_user_id").references(() => users.id),
+  isGlobal: boolean("is_global").default(false),
+  category: text("category").default("general"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  isActive: boolean("is_active").default(true),
+});
+
+export const emailTemplateUsage = pgTable("email_template_usage", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").references(() => emailTemplates.id),
+  usedBy: integer("used_by").references(() => users.id),
+  taskId: integer("task_id").references(() => tasks.id),
+  recipientEmail: text("recipient_email"),
+  sentAt: timestamp("sent_at").defaultNow(),
 });
 
 export const reports = pgTable("reports", {
@@ -379,6 +403,25 @@ export const insertEmailSchema = createInsertSchema(emails).pick({
   subject: true,
   body: true,
   template: true,
+  templateId: true,
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick({
+  name: true,
+  subject: true,
+  htmlContent: true,
+  assignedUserId: true,
+  isGlobal: true,
+  category: true,
+  createdBy: true,
+  isActive: true,
+});
+
+export const insertEmailTemplateUsageSchema = createInsertSchema(emailTemplateUsage).pick({
+  templateId: true,
+  usedBy: true,
+  taskId: true,
+  recipientEmail: true,
 });
 
 export const insertReportSchema = createInsertSchema(reports).pick({
@@ -420,6 +463,12 @@ export type GithubCommit = typeof githubCommits.$inferSelect;
 
 export type InsertEmail = z.infer<typeof insertEmailSchema>;
 export type Email = typeof emails.$inferSelect;
+
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+
+export type InsertEmailTemplateUsage = z.infer<typeof insertEmailTemplateUsageSchema>;
+export type EmailTemplateUsage = typeof emailTemplateUsage.$inferSelect;
 
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;

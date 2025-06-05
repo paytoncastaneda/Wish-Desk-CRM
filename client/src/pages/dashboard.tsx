@@ -267,11 +267,11 @@ export default function Dashboard() {
                       </div>
                     </td>
                   </tr>
-                )) || [
+                )) || (
                   <tr key="no-data">
                     <td colSpan={4} className="py-4 text-center text-gray-500">No team data available</td>
                   </tr>
-                ]}
+                )}
               </tbody>
             </table>
           </div>

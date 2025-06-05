@@ -660,11 +660,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Sample team data - would be replaced with actual queries
       const teamData = [
-        { id: 1, name: "Sarah Johnson", rank: 1, mtdSales: 65000 },
-        { id: 2, name: "Mike Chen", rank: 2, mtdSales: 58000 },
-        { id: 3, name: "Lisa Davis", rank: 3, mtdSales: 52000 },
-        { id: 4, name: "Current User", rank: 4, mtdSales: 45000 },
-        { id: 5, name: "Tom Wilson", rank: 5, mtdSales: 42000 }
+        { name: "Sarah Johnson", sales: 65000, change: "+15%" },
+        { name: "Mike Chen", sales: 58000, change: "+12%" },
+        { name: "Lisa Davis", sales: 52000, change: "+8%" },
+        { name: "Current User", sales: 45000, change: "+12%" },
+        { name: "Tom Wilson", sales: 42000, change: "+5%" }
       ];
       res.json(teamData);
     } catch (error) {
@@ -673,9 +673,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/gc/assigned-domains", authenticate, requireRole("gc"), async (req, res) => {
+  app.get("/api/gc/domains", authenticate, requireRole("gc"), async (req, res) => {
     try {
-      const filter = req.query.filter || "company_count";
+      const filter = req.query.filter || "lifetime";
       // Sample domain data - would be replaced with actual queries
       const domainsData = [
         { domain: "techcorp.com", companyCount: 15, revenue: 125000 },
@@ -686,12 +686,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       res.json(domainsData);
     } catch (error) {
-      console.error("Error fetching assigned domains:", error);
-      res.status(500).json({ error: "Failed to fetch assigned domains" });
+      console.error("Error fetching domains:", error);
+      res.status(500).json({ error: "Failed to fetch domains" });
     }
   });
 
-  app.get("/api/gc/open-opportunities", authenticate, requireRole("gc"), async (req, res) => {
+  app.get("/api/gc/opportunities", authenticate, requireRole("gc"), async (req, res) => {
     try {
       // Sample opportunities data - would be replaced with actual Insightly integration
       const opportunitiesData = [
@@ -699,25 +699,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: 1,
           name: "TechCorp Q1 Package",
           value: 15000,
-          estimatedShipDate: "2024-02-15",
-          lastActivityDate: "2024-01-20",
-          nextActivityDate: "2024-01-25",
+          shipDate: "2024-02-15",
+          lastActivity: "2024-01-20",
+          nextActivity: "2024-01-25",
           insightlyUrl: "https://sugarwish.insight.ly/opportunities/12345"
         },
         {
           id: 2,
           name: "Global Inc Holiday Campaign",
           value: 8500,
-          estimatedShipDate: "2024-02-28",
-          lastActivityDate: "2024-01-18",
-          nextActivityDate: "2024-01-30",
+          shipDate: "2024-02-28",
+          lastActivity: "2024-01-18",
+          nextActivity: "2024-01-30",
           insightlyUrl: "https://sugarwish.insight.ly/opportunities/12346"
         }
       ];
       res.json(opportunitiesData);
     } catch (error) {
-      console.error("Error fetching open opportunities:", error);
-      res.status(500).json({ error: "Failed to fetch open opportunities" });
+      console.error("Error fetching opportunities:", error);
+      res.status(500).json({ error: "Failed to fetch opportunities" });
     }
   });
 
@@ -742,22 +742,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const domain = req.params.domain;
       // Sample domain organization data - would be replaced with actual queries
-      const domainDetails = [
-        {
-          organizationName: "TechCorp Solutions",
-          lastOrderDate: "2024-01-15",
-          lastCreditDate: "2024-01-10",
-          lifetimeRevenue: 125000,
-          lastActivity: "Inbound inquiry about Q1 packages"
-        },
-        {
-          organizationName: "TechCorp Marketing",
-          lastOrderDate: "2023-12-20",
-          lastCreditDate: "2023-12-18",
-          lifetimeRevenue: 85000,
-          lastActivity: "Follow-up call scheduled"
-        }
-      ];
+      const domainDetails = {
+        organizations: [
+          {
+            name: "TechCorp Solutions",
+            lastOrderDate: "2024-01-15",
+            lastCreditDate: "2024-01-10",
+            lifetimeRevenue: 125000,
+            mtdRevenue: 25000,
+            recentActivity: "Inbound inquiry about Q1 packages"
+          },
+          {
+            name: "TechCorp Marketing",
+            lastOrderDate: "2023-12-20",
+            lastCreditDate: "2023-12-18",
+            lifetimeRevenue: 85000,
+            mtdRevenue: 15000,
+            recentActivity: "Follow-up call scheduled"
+          }
+        ]
+      };
       res.json(domainDetails);
     } catch (error) {
       console.error("Error fetching domain details:", error);

@@ -84,9 +84,8 @@ export class DatabaseStorage implements IStorage {
   async createTask(insertTask: InsertTask): Promise<Task> {
     const [task] = await db.insert(tasks).values({
       ...insertTask,
-      description: insertTask.description || null,
       status: insertTask.status || 'pending',
-      priority: insertTask.priority || 'medium'
+      priority: insertTask.priority || 1
     }).returning();
     return task;
   }

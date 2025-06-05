@@ -6,18 +6,36 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email"),
+  role: text("role").notNull().default("user"), // 'admin', 'sales_rep', 'user'
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description"),
-  status: text("status").notNull().default("todo"),
-  priority: text("priority").notNull().default("medium"),
-  assignedTo: text("assigned_to"),
-  dueDate: timestamp("due_date"),
-  completedAt: timestamp("completed_at"),
+  taskName: text("task_name").notNull(),
+  taskOwner: integer("task_owner").references(() => users.id),
+  category: text("category"),
+  dateDue: timestamp("date_due"),
+  expirationDate: timestamp("expiration_date"),
+  priority: integer("priority").default(1),
+  status: text("status").notNull().default("pending"),
+  taskDetails: text("task_details"),
+  assignToSidekick: boolean("assign_to_sidekick").default(false),
+  
+  // Future linking fields for relationships
+  linkedSwUserId: integer("linked_sw_user_id").references(() => users.id),
+  linkedSwCompanyId: integer("linked_sw_company_id"), // Future table
+  linkedSwCrmProposalId: integer("linked_swcrm_proposal_id"), // Future table
+  linkedSwCrmOpportunityId: integer("linked_swcrm_opportunity_id"), // Future table
+  linkedSwCrmNotesId: integer("linked_swcrm_notes_id"), // Future table
+  linkedSwCrmPromotionsId: integer("linked_swcrm_promotions_id"), // Future table
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const githubRepos = pgTable("github_repos", {
@@ -89,12 +107,21 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 export const insertTaskSchema = createInsertSchema(tasks).pick({
-  title: true,
-  description: true,
-  status: true,
+  taskName: true,
+  taskOwner: true,
+  category: true,
+  dateDue: true,
+  expirationDate: true,
   priority: true,
-  assignedTo: true,
-  dueDate: true,
+  status: true,
+  taskDetails: true,
+  assignToSidekick: true,
+  linkedSwUserId: true,
+  linkedSwCompanyId: true,
+  linkedSwCrmProposalId: true,
+  linkedSwCrmOpportunityId: true,
+  linkedSwCrmNotesId: true,
+  linkedSwCrmPromotionsId: true,
 });
 
 export const insertGithubRepoSchema = createInsertSchema(githubRepos).pick({

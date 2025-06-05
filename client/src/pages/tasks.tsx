@@ -314,7 +314,7 @@ export default function Tasks() {
             </p>
           </div>
           
-          {/* Default Views Dropdown */}
+          {/* Task Views Dropdown */}
           <div className="flex items-center gap-2">
             <Label className="text-[#2d3333] font-lato text-sm font-medium">View:</Label>
             <Select value={activeView?.id || defaultViews[0].id} onValueChange={handleViewChange}>
@@ -322,11 +322,45 @@ export default function Tasks() {
                 <SelectValue placeholder="Select view" />
               </SelectTrigger>
               <SelectContent>
+                {/* Default Views */}
                 {defaultViews.map((view) => (
                   <SelectItem key={view.id} value={view.id} className="font-lato">
                     {view.name}
                   </SelectItem>
                 ))}
+                
+                {/* Custom Views */}
+                {taskViews && taskViews.length > 0 && (
+                  <>
+                    <div className="px-2 py-1 text-xs font-semibold text-[#737373] border-t border-[#e5e7eb] mt-1">
+                      Custom Views
+                    </div>
+                    {taskViews.map((view) => (
+                      <SelectItem key={`custom-${view.id}`} value={`custom-${view.id}`} className="font-lato">
+                        <div className="flex items-center justify-between w-full">
+                          <span>{view.name}</span>
+                          {view.isGlobal && (
+                            <span className="ml-2 text-xs text-[#55c5ce]">Global</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+                
+                {/* Add New View Option */}
+                <div className="border-t border-[#e5e7eb] mt-1">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowViewForm(true);
+                    }}
+                    className="w-full px-2 py-2 text-left text-sm font-lato text-[#55c5ce] hover:bg-[#f3fbfc] flex items-center"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add New Task View
+                  </button>
+                </div>
               </SelectContent>
             </Select>
           </div>
@@ -680,6 +714,141 @@ export default function Tasks() {
   );
 }
 
+// View Form Dialog Component
+interface ViewFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  view: TaskView | null;
+  currentFilters: any;
+  currentColumns: any;
+  onSubmit: (data: any) => void;
+}
+
+function ViewFormDialog({ open, onOpenChange, view, currentFilters, currentColumns, onSubmit }: ViewFormDialogProps) {
+  const form = useForm({
+    resolver: zodResolver(z.object({
+      name: z.string().min(1, "View name is required"),
+      description: z.string().optional(),
+      isGlobal: z.boolean().default(false),
+      filters: z.any().optional(),
+      columns: z.any().optional()
+    })),
+    defaultValues: {
+      name: view?.name || "",
+      description: view?.description || "",
+      isGlobal: view?.isGlobal || false,
+      filters: view?.filters || currentFilters,
+      columns: view?.columns || currentColumns
+    }
+  });
+
+  const handleSubmit = (data: any) => {
+    onSubmit({
+      ...data,
+      filters: currentFilters,
+      columns: currentColumns
+    });
+    form.reset();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-lato text-[#2d3333]">
+            {view ? "Edit Task View" : "Create New Task View"}
+          </DialogTitle>
+          <DialogDescription className="font-lato text-[#737373]">
+            Save your current filters and column settings as a custom view
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-lato text-[#2d3333]">View Name</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="Enter view name"
+                      className="border-[#cccccc] focus:border-[#55c5ce] font-lato"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-lato text-[#2d3333]">Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      placeholder="Brief description of this view"
+                      className="border-[#cccccc] focus:border-[#55c5ce] font-lato"
+                      rows={2}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="isGlobal"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border border-[#cccccc] p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="font-lato text-[#2d3333] text-sm font-medium">
+                      Global View
+                    </FormLabel>
+                    <FormDescription className="font-lato text-[#737373] text-xs">
+                      Make this view available to all users
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="border-[#cccccc] text-[#737373] hover:bg-[#f5f5f5] font-lato"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-lato"
+              >
+                {view ? "Update View" : "Create View"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Task Form Dialog Component
 interface TaskFormDialogProps {
   open: boolean;
@@ -908,93 +1077,6 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
               className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-montserrat"
             >
               {task ? "Update Task" : "Create Task"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// View Form Dialog Component
-interface ViewFormDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  view: TaskView | null;
-  currentFilters: TaskFilters;
-  currentColumns: any;
-  onSubmit: (data: InsertTaskView) => void;
-}
-
-function ViewFormDialog({ open, onOpenChange, view, currentFilters, currentColumns, onSubmit }: ViewFormDialogProps) {
-  const [formData, setFormData] = useState<InsertTaskView>({
-    name: "",
-    description: "",
-    isGlobal: false,
-    createdBy: 1,
-    filterConfig: currentFilters,
-    columnConfig: currentColumns,
-    isActive: true,
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-montserrat text-[#2d3333]">Save Current View</DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label className="text-[#2d3333] font-lato">View Name *</Label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="border-[#cccccc] focus:border-[#55c5ce]"
-              placeholder="e.g., High Priority Tasks"
-              required
-            />
-          </div>
-          
-          <div>
-            <Label className="text-[#2d3333] font-lato">Description</Label>
-            <Textarea
-              value={formData.description || ""}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="border-[#cccccc] focus:border-[#55c5ce]"
-              placeholder="Optional description"
-              rows={2}
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="global"
-              checked={formData.isGlobal}
-              onCheckedChange={(checked) => setFormData({...formData, isGlobal: !!checked})}
-            />
-            <Label htmlFor="global" className="text-[#2d3333] font-lato">Make this a global template (visible to all users)</Label>
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="border-[#cccccc] text-[#737373]"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-montserrat"
-            >
-              Save View
             </Button>
           </div>
         </form>

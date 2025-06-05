@@ -38,6 +38,13 @@ export interface IStorage {
   deleteEmail(id: number): Promise<boolean>;
   getEmailsByStatus(status: string): Promise<Email[]>;
 
+  // Email Templates
+  getAllEmailTemplates(): Promise<SwcrmOutreachTemplate[]>;
+  getEmailTemplate(id: number): Promise<SwcrmOutreachTemplate | undefined>;
+  createEmailTemplate(template: InsertSwcrmOutreachTemplate): Promise<SwcrmOutreachTemplate>;
+  updateEmailTemplate(id: number, updates: Partial<SwcrmOutreachTemplate>): Promise<SwcrmOutreachTemplate | undefined>;
+  deleteEmailTemplate(id: number): Promise<boolean>;
+
   // Reports
   getAllReports(): Promise<Report[]>;
   getReport(id: number): Promise<Report | undefined>;
@@ -210,6 +217,38 @@ export class DatabaseStorage implements IStorage {
 
   async getDocumentationByCategory(category: string): Promise<Documentation[]> {
     return await db.select().from(documentation).where(eq(documentation.category, category));
+  }
+
+  // Email Templates
+  async getAllEmailTemplates(): Promise<SwcrmOutreachTemplate[]> {
+    return await db.select().from(swcrmOutreachTemplates).where(eq(swcrmOutreachTemplates.isActive, true));
+  }
+
+  async getEmailTemplate(id: number): Promise<SwcrmOutreachTemplate | undefined> {
+    const [template] = await db.select().from(swcrmOutreachTemplates).where(eq(swcrmOutreachTemplates.id, id));
+    return template || undefined;
+  }
+
+  async createEmailTemplate(insertTemplate: InsertSwcrmOutreachTemplate): Promise<SwcrmOutreachTemplate> {
+    const [template] = await db.insert(swcrmOutreachTemplates).values(insertTemplate).returning();
+    return template;
+  }
+
+  async updateEmailTemplate(id: number, updates: Partial<SwcrmOutreachTemplate>): Promise<SwcrmOutreachTemplate | undefined> {
+    const [template] = await db
+      .update(swcrmOutreachTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(swcrmOutreachTemplates.id, id))
+      .returning();
+    return template || undefined;
+  }
+
+  async deleteEmailTemplate(id: number): Promise<boolean> {
+    await db
+      .update(swcrmOutreachTemplates)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(swcrmOutreachTemplates.id, id));
+    return true;
   }
 }
 

@@ -323,6 +323,23 @@ export const swCompanyUsersPivot = pgTable("sw_company_users_pivot", {
   firstOrderDate: timestamp("first_order_date"),
 });
 
+export const opportunities = pgTable("opportunities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  companyId: integer("company_id").references(() => swCompany.id),
+  assignedUserId: integer("assigned_user_id").references(() => users.id),
+  status: text("status").notNull().default("open"), // open, won, lost
+  value: integer("value").default(0),
+  estimatedShipDate: timestamp("estimated_ship_date"),
+  actualCloseDate: timestamp("actual_close_date"),
+  probability: integer("probability").default(0), // 0-100
+  stage: text("stage").default("prospecting"),
+  notes: text("notes"),
+  insightlyOpportunityId: integer("insightly_opportunity_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -439,6 +456,20 @@ export const insertDocumentationSchema = createInsertSchema(documentation).pick(
   status: true,
 });
 
+export const insertOpportunitySchema = createInsertSchema(opportunities).pick({
+  name: true,
+  companyId: true,
+  assignedUserId: true,
+  status: true,
+  value: true,
+  estimatedShipDate: true,
+  actualCloseDate: true,
+  probability: true,
+  stage: true,
+  notes: true,
+  insightlyOpportunityId: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -475,3 +506,6 @@ export type Report = typeof reports.$inferSelect;
 
 export type InsertDocumentation = z.infer<typeof insertDocumentationSchema>;
 export type Documentation = typeof documentation.$inferSelect;
+
+export type InsertOpportunity = z.infer<typeof insertOpportunitySchema>;
+export type Opportunity = typeof opportunities.$inferSelect;

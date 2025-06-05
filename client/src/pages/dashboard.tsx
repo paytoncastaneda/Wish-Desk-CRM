@@ -355,7 +355,7 @@ export default function Dashboard() {
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ccedf0', borderColor: '#55c5ce' }}>
+              <div className="p-4 rounded-lg border bg-[#66cc99]" style={{ backgroundColor: '#ccedf0', borderColor: '#55c5ce' }}>
                 <div className="text-center">
                   <div className="text-2xl font-bold" style={{ color: '#277e88' }}>
                     {(opportunitiesBreakdown as any)?.closeRate || 0}%

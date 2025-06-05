@@ -91,7 +91,7 @@ export default function Tasks() {
       const defaultView = defaultViews.find(v => v.id === savedViewId);
       if (defaultView) {
         setActiveView({ 
-          id: defaultView.id, 
+          id: defaultView.id as any, 
           name: defaultView.name, 
           filterConfig: defaultView.filters 
         } as TaskView);
@@ -101,7 +101,7 @@ export default function Tasks() {
       // Default to "My Open Tasks"
       const defaultView = defaultViews[0];
       setActiveView({ 
-        id: defaultView.id, 
+        id: defaultView.id as any, 
         name: defaultView.name, 
         filterConfig: defaultView.filters 
       } as TaskView);
@@ -291,7 +291,7 @@ export default function Tasks() {
     const selectedView = defaultViews.find(v => v.id === viewId);
     if (selectedView) {
       setActiveView({ 
-        id: selectedView.id, 
+        id: selectedView.id as any, 
         name: selectedView.name, 
         filterConfig: selectedView.filters 
       } as TaskView);
@@ -470,98 +470,6 @@ export default function Tasks() {
           </CollapsibleContent>
         </Card>
       </Collapsible>
-            <div>
-              <Label className="text-[#2d3333] font-lato">Search</Label>
-              <Input
-                placeholder="Search tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="border-[#cccccc] focus:border-[#55c5ce]"
-              />
-            </div>
-            
-            <div>
-              <Label className="text-[#2d3333] font-lato">Status</Label>
-              <Select value={filters.status || "all"} onValueChange={(value) => setFilters({...filters, status: value === "all" ? undefined : value})}>
-                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="Not Started">Not Started</SelectItem>
-                  <SelectItem value="Complete">Complete</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-[#2d3333] font-lato">Priority</Label>
-              <Select value={filters.priority?.toString() || "all"} onValueChange={(value) => setFilters({...filters, priority: value === "all" ? undefined : parseInt(value)})}>
-                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
-                  <SelectValue placeholder="All priorities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All priorities</SelectItem>
-                  <SelectItem value="1">Low</SelectItem>
-                  <SelectItem value="2">Medium</SelectItem>
-                  <SelectItem value="3">High</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-[#2d3333] font-lato">Category</Label>
-              <Select value={filters.category || "all"} onValueChange={(value) => setFilters({...filters, category: value === "all" ? undefined : value})}>
-                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All categories</SelectItem>
-                  <SelectItem value="CALL">Call</SelectItem>
-                  <SelectItem value="EMAIL">Email</SelectItem>
-                  <SelectItem value="MEETING">Meeting</SelectItem>
-                  <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
-                  <SelectItem value="PROPOSAL">Proposal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-[#2d3333] font-lato">Assigned To</Label>
-              <Select value={filters.taskOwner?.toString() || "all"} onValueChange={(value) => setFilters({...filters, taskOwner: value === "all" ? undefined : parseInt(value)})}>
-                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
-                  <SelectValue placeholder="All users" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All users</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.firstName} {user.lastName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-[#2d3333] font-lato">Company</Label>
-              <Select value={filters.linkedSwCompanyId?.toString() || "all"} onValueChange={(value) => setFilters({...filters, linkedSwCompanyId: value === "all" ? undefined : parseInt(value)})}>
-                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
-                  <SelectValue placeholder="All companies" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All companies</SelectItem>
-                  {swCompanies.map((company) => (
-                    <SelectItem key={company.id} value={company.id.toString()}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Tasks Table */}
       <Card className="border-[#cccccc] shadow-sm">
@@ -874,7 +782,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
             
             <div>
               <Label className="text-[#2d3333] font-lato">Priority</Label>
-              <Select value={formData.priority.toString()} onValueChange={(value) => setFormData({...formData, priority: parseInt(value)})}>
+              <Select value={formData.priority?.toString() || "1"} onValueChange={(value) => setFormData({...formData, priority: parseInt(value)})}>
                 <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
                   <SelectValue />
                 </SelectTrigger>
@@ -888,7 +796,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
             
             <div>
               <Label className="text-[#2d3333] font-lato">Assigned To *</Label>
-              <Select value={formData.taskOwner.toString()} onValueChange={(value) => setFormData({...formData, taskOwner: parseInt(value)})}>
+              <Select value={formData.taskOwner?.toString() || ""} onValueChange={(value) => setFormData({...formData, taskOwner: parseInt(value)})}>
                 <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
                   <SelectValue />
                 </SelectTrigger>

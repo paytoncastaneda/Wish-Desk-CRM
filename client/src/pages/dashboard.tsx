@@ -413,7 +413,7 @@ export default function Dashboard() {
           <CardContent className="pt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Estimated Bonus</h3>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+              <div className="flex justify-between items-center p-3 rounded-lg bg-[#a4e0e5]">
                 <span className="text-sm font-medium">MTD Bonus (1.7%)</span>
                 <span className="text-lg font-semibold text-green-600">
                   ${Math.round(((salesData as any)?.mtd || 0) * 0.017).toLocaleString()}

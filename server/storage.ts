@@ -1,4 +1,4 @@
-import { users, tasks, emails, reports, documentation, type User, type Task, type Email, type Report, type Documentation, type InsertUser, type InsertTask, type InsertEmail, type InsertReport, type InsertDocumentation } from "@shared/schema";
+import { users, tasks, emails, reports, documentation, swcrmOutreachTemplates, opportunities, type User, type Task, type Email, type Report, type Documentation, type InsertUser, type InsertTask, type InsertEmail, type InsertReport, type InsertDocumentation, type SwcrmOutreachTemplate, type InsertSwcrmOutreachTemplate, type Opportunity, type InsertOpportunity } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, inArray } from "drizzle-orm";
 

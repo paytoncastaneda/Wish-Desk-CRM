@@ -40,6 +40,11 @@ export default function Dashboard() {
     enabled: !!showDrillDown && showDrillDown === 'activeTasks',
   });
 
+  const { data: emailBreakdown } = useQuery({
+    queryKey: ["/api/emails/breakdown"],
+    enabled: !!showDrillDown && showDrillDown === 'emailsSent',
+  });
+
   const { data: teamData } = useQuery({
     queryKey: ["/api/gc/team-comparison"],
   });
@@ -249,6 +254,83 @@ export default function Dashboard() {
                   </div>
                   <div className="text-sm font-medium text-blue-700">Due in Future</div>
                   <div className="text-xs text-blue-500 mt-1">Due later</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Emails Sent Drill Down */}
+      {showDrillDown === 'emailsSent' && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Emails Sent Breakdown</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDrillDown(null)}
+              >
+                Close
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Email Count Cards */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-orange-50 rounded-lg border">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {(emailBreakdown as any)?.sentYesterday || 0}
+                      </div>
+                      <div className="text-sm font-medium text-orange-700">Emails Sent Yesterday</div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-green-50 rounded-lg border">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {(emailBreakdown as any)?.sentToday || 0}
+                      </div>
+                      <div className="text-sm font-medium text-green-700">Emails Sent Today</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Recent Emails List */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-3">5 Most Recent Emails</h4>
+                <div className="space-y-2">
+                  {(emailBreakdown as any)?.recentEmails?.length > 0 ? (
+                    (emailBreakdown as any).recentEmails.map((email: any, index: number) => (
+                      <div key={index} className="p-3 bg-gray-50 rounded-lg border">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {email.subject}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              To: {email.recipient}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {email.sentAt ? new Date(email.sentAt).toLocaleDateString() + ' ' + 
+                               new Date(email.sentAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Not sent'}
+                            </div>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            email.status === 'sent' ? 'bg-green-100 text-green-800' :
+                            email.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {email.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500 py-4">No recent emails found</div>
+                  )}
                 </div>
               </div>
             </div>

@@ -73,7 +73,12 @@ export default function EmailCenter() {
       return apiRequest("POST", "/api/email-templates/generate", data);
     },
     onSuccess: (data) => {
-      templateForm.setValue("htmlContent", data.htmlContent);
+      // Clean the HTML content by removing markdown code blocks if present
+      let cleanHTML = data.htmlContent;
+      if (cleanHTML.startsWith('```html\n')) {
+        cleanHTML = cleanHTML.replace(/```html\n/, '').replace(/\n```$/, '');
+      }
+      templateForm.setValue("htmlContent", cleanHTML);
       setIsAIDialogOpen(false);
       setAiDescription("");
       toast({

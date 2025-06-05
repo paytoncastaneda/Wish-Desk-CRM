@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Edit, Trash2, Calendar, User, Filter, Save, Download, Upload, Eye, Settings, ChevronDown, RefreshCw } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Edit, Trash2, Calendar, User, Filter, Save, Download, Upload, Eye, Settings, ChevronDown, RefreshCw, ChevronUp, ExternalLink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -38,21 +39,75 @@ export default function Tasks() {
   const [showColumnConfig, setShowColumnConfig] = useState(false);
   const [editingTask, setEditingTask] = useState<SwcrmTask | null>(null);
   const [editingView, setEditingView] = useState<TaskView | null>(null);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const { toast } = useToast();
 
-  // Column configuration
+  // Column configuration - optimized for requested layout
   const [visibleColumns, setVisibleColumns] = useState({
-    taskName: true,
-    category: true,
-    priority: true,
-    status: true,
-    taskOwner: true,
     dateDue: true,
-    linkedSwCompanyId: true,
-    linkedSwCrmOpportunityId: true,
-    assignToSidekick: true,
-    createdAt: true,
+    priority: true,
+    category: true,
+    taskName: true,
+    linkedItems: true, // Combined linked contacts/companies/opportunities
   });
+
+  // Current user info for role-based features
+  const currentUser = { role: 'sales_rep' }; // This would come from auth context
+  const isAdmin = currentUser.role === 'admin';
+
+  // Default task views
+  const defaultViews = [
+    { 
+      id: 'my-open-tasks', 
+      name: 'My Open Tasks', 
+      filters: { status: 'Not Started', taskOwner: 1 } 
+    },
+    { 
+      id: 'my-tasks', 
+      name: 'My Tasks', 
+      filters: { taskOwner: 1 } 
+    },
+    { 
+      id: 'my-overdue-tasks', 
+      name: 'My Overdue Tasks', 
+      filters: { status: 'Not Started', taskOwner: 1, overdue: true } 
+    },
+    { 
+      id: 'all-open-tasks', 
+      name: 'All Open Tasks', 
+      filters: { status: 'Not Started' } 
+    },
+    { 
+      id: 'high-priority', 
+      name: 'High Priority Tasks', 
+      filters: { priority: 3 } 
+    },
+  ];
+
+  // Load saved view preference from localStorage
+  useEffect(() => {
+    const savedViewId = localStorage.getItem('lastTaskView');
+    if (savedViewId) {
+      const defaultView = defaultViews.find(v => v.id === savedViewId);
+      if (defaultView) {
+        setActiveView({ 
+          id: defaultView.id, 
+          name: defaultView.name, 
+          filterConfig: defaultView.filters 
+        } as TaskView);
+        setFilters(defaultView.filters);
+      }
+    } else {
+      // Default to "My Open Tasks"
+      const defaultView = defaultViews[0];
+      setActiveView({ 
+        id: defaultView.id, 
+        name: defaultView.name, 
+        filterConfig: defaultView.filters 
+      } as TaskView);
+      setFilters(defaultView.filters);
+    }
+  }, []);
 
   // Fetch data
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<SwcrmTask[]>({
@@ -231,107 +286,190 @@ export default function Tasks() {
     }
   };
 
+  // Handle view selection and save preference
+  const handleViewChange = (viewId: string) => {
+    const selectedView = defaultViews.find(v => v.id === viewId);
+    if (selectedView) {
+      setActiveView({ 
+        id: selectedView.id, 
+        name: selectedView.name, 
+        filterConfig: selectedView.filters 
+      } as TaskView);
+      setFilters(selectedView.filters);
+      localStorage.setItem('lastTaskView', viewId);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 bg-[#f9f9fb] min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-montserrat font-bold text-[#2d3333] mb-2">
-            Task Management
-          </h1>
-          <p className="text-[#737373] font-lato">
-            Comprehensive task tracking with advanced filtering, recurring tasks, and collaborative features
-          </p>
+        <div className="flex items-center gap-6">
+          <div>
+            <h1 className="text-3xl font-lato font-bold text-[#2d3333] mb-2">
+              Task Management
+            </h1>
+            <p className="text-[#737373] font-lato">
+              Comprehensive task tracking with advanced filtering and collaborative features
+            </p>
+          </div>
+          
+          {/* Default Views Dropdown */}
+          <div className="flex items-center gap-2">
+            <Label className="text-[#2d3333] font-lato text-sm font-medium">View:</Label>
+            <Select value={activeView?.id || defaultViews[0].id} onValueChange={handleViewChange}>
+              <SelectTrigger className="w-48 border-[#cccccc] focus:border-[#55c5ce] font-lato">
+                <SelectValue placeholder="Select view" />
+              </SelectTrigger>
+              <SelectContent>
+                {defaultViews.map((view) => (
+                  <SelectItem key={view.id} value={view.id} className="font-lato">
+                    {view.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
           <Button
-            onClick={handleBulkExport}
-            variant="outline"
-            className="border-[#55c5ce] text-[#277e88] hover:bg-[#f3fbfc]"
+            onClick={() => setShowTaskForm(true)}
+            className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-lato font-semibold"
           >
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
+            <Plus className="w-4 h-4 mr-2" />
+            New Task
           </Button>
           
-          <Button
-            onClick={() => setShowViewForm(true)}
-            variant="outline"
-            className="border-[#55c5ce] text-[#277e88] hover:bg-[#f3fbfc]"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save View
-          </Button>
+          {/* Admin-only Import/Export Controls */}
+          {isAdmin && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="border-[#cccccc] text-[#2d3333] font-lato">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={handleBulkExport} className="font-lato">
+                    Export to CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <Button variant="outline" className="border-[#cccccc] text-[#2d3333] font-lato">
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+            </>
+          )}
           
           <Button
             onClick={() => setShowColumnConfig(true)}
             variant="outline"
-            className="border-[#55c5ce] text-[#277e88] hover:bg-[#f3fbfc]"
+            className="border-[#55c5ce] text-[#277e88] hover:bg-[#f3fbfc] font-lato"
           >
             <Settings className="w-4 h-4 mr-2" />
             Columns
           </Button>
-          
-          <Button
-            onClick={() => setShowTaskForm(true)}
-            className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-montserrat font-semibold"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Task
-          </Button>
         </div>
       </div>
 
-      {/* Task Views */}
-      <Card className="border-[#cccccc] shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-montserrat text-[#2d3333]">Saved Views</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setActiveView(null);
-                setFilters({});
-              }}
-              className="text-[#737373] hover:text-[#2d3333]"
-            >
-              Clear View
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {taskViews.map((view) => (
-              <Button
-                key={view.id}
-                variant={activeView?.id === view.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveView(view)}
-                className={
-                  activeView?.id === view.id
-                    ? "bg-[#d2232a] text-white"
-                    : "border-[#cccccc] text-[#737373] hover:bg-[#f5f5f5]"
-                }
-              >
-                {view.isGlobal && <Eye className="w-3 h-3 mr-1" />}
-                {view.name}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Filters */}
-      <Card className="border-[#cccccc] shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-montserrat text-[#2d3333] flex items-center">
-            <Filter className="w-5 h-5 mr-2 text-[#55c5ce]" />
-            Advanced Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Collapsible Filters */}
+      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <Card className="border-[#cccccc] shadow-sm">
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between cursor-pointer">
+                <CardTitle className="text-lg font-lato text-[#2d3333] flex items-center">
+                  <Filter className="w-5 h-5 mr-2 text-[#55c5ce]" />
+                  Filters
+                </CardTitle>
+                <Button variant="ghost" size="sm" className="text-[#277e88] hover:bg-[#f3fbfc] font-lato">
+                  {isFiltersOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </Button>
+              </div>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-[#2d3333] font-lato">Search</Label>
+                  <Input
+                    placeholder="Search tasks..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="border-[#cccccc] focus:border-[#55c5ce]"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-[#2d3333] font-lato">Status</Label>
+                  <Select value={filters.status || "all"} onValueChange={(value) => setFilters({...filters, status: value === "all" ? undefined : value})}>
+                    <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="Not Started">Not Started</SelectItem>
+                      <SelectItem value="Complete">Complete</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label className="text-[#2d3333] font-lato">Priority</Label>
+                  <Select value={filters.priority?.toString() || "all"} onValueChange={(value) => setFilters({...filters, priority: value === "all" ? undefined : parseInt(value)})}>
+                    <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                      <SelectValue placeholder="All priorities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All priorities</SelectItem>
+                      <SelectItem value="1">Low</SelectItem>
+                      <SelectItem value="2">Medium</SelectItem>
+                      <SelectItem value="3">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label className="text-[#2d3333] font-lato">Assigned To</Label>
+                  <Select value={filters.taskOwner?.toString() || "all"} onValueChange={(value) => setFilters({...filters, taskOwner: value === "all" ? undefined : parseInt(value)})}>
+                    <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                      <SelectValue placeholder="All users" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All users</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.firstName} {user.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="mt-4 flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFilters({});
+                    setSearchQuery("");
+                  }}
+                  className="border-[#cccccc] text-[#277e88] hover:bg-[#f3fbfc] font-lato"
+                >
+                  Clear All
+                </Button>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
             <div>
               <Label className="text-[#2d3333] font-lato">Search</Label>
               <Input

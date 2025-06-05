@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChartLine, Github, Mail, BarChart3 } from "lucide-react";
+import { ChartLine, FileText, Mail, BarChart3 } from "lucide-react";
 import { TaskChart } from "@/components/charts/task-chart";
-import { GitHubChart } from "@/components/charts/github-chart";
+import { EmailChart } from "@/components/charts/email-chart";
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -62,10 +62,10 @@ export default function Dashboard() {
           color="bg-primary"
         />
         <StatCard
-          title="GitHub Repos"
-          value={stats?.githubRepos}
-          icon={Github}
-          change="+2 new this month"
+          title="Documentation"
+          value={stats?.documentation}
+          icon={FileText}
+          change="+5 this month"
           color="bg-success"
         />
         <StatCard
@@ -97,9 +97,9 @@ export default function Dashboard() {
 
         <Card>
           <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">GitHub Activity</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Activity</h3>
             <div className="h-64">
-              <GitHubChart />
+              <EmailChart />
             </div>
           </CardContent>
         </Card>

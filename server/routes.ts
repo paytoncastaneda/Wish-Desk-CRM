@@ -20,11 +20,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const emailsSent = emails.filter(email => email.status === 'sent').length;
       const reportsGenerated = reports.filter(report => report.status === 'completed').length;
 
+      const documentation = await storage.getAllDocumentation();
+      
       res.json({
         activeTasks,
-        githubRepos: repos.length,
         emailsSent,
-        reportsGenerated
+        reportsGenerated,
+        documentation: documentation.length
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
@@ -60,10 +62,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GitHub analytics
-  app.get("/api/dashboard/github-analytics", async (req, res) => {
+  // Email analytics
+  app.get("/api/dashboard/email-analytics", async (req, res) => {
     try {
-      const commits = await storage.getAllCommits();
+      const emails = await storage.getAllEmails();
       
       // Group by week for the last 4 weeks
       const last4Weeks = Array.from({ length: 4 }, (_, i) => {
@@ -76,19 +78,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      const githubData = last4Weeks.map(week => {
-        const weekCommits = commits.filter(commit => 
-          commit.date >= week.startDate && commit.date <= week.endDate
+      const emailData = last4Weeks.map(week => {
+        const weekEmails = emails.filter(email => 
+          email.createdAt >= week.startDate && email.createdAt <= week.endDate
         );
         return {
           week: week.week,
-          commits: weekCommits.length
+          emails: weekEmails.length
         };
       });
 
-      res.json(githubData);
+      res.json(emailData);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch GitHub analytics" });
+      res.status(500).json({ message: "Failed to fetch email analytics" });
     }
   });
 
@@ -152,61 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GitHub integration
-  app.get("/api/github/repos", async (req, res) => {
-    try {
-      const repos = await storage.getAllRepos();
-      res.json(repos);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch repositories" });
-    }
-  });
 
-  app.post("/api/github/sync", async (req, res) => {
-    try {
-      await githubService.syncRepositories();
-      res.json({ message: "GitHub sync initiated" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to sync GitHub repositories" });
-    }
-  });
-
-  app.post("/api/github/repos/:id/sync", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await githubService.syncRepository(id);
-      res.json({ message: "Repository sync initiated" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to sync repository" });
-    }
-  });
-
-  app.get("/api/github/status", async (req, res) => {
-    try {
-      const repos = await storage.getAllRepos();
-      const commits = await storage.getAllCommits();
-      
-      const lastSyncRepo = repos.reduce((latest, repo) => {
-        if (!latest || !repo.lastSyncAt) return latest;
-        if (!latest.lastSyncAt || repo.lastSyncAt > latest.lastSyncAt) return repo;
-        return latest;
-      }, repos[0]);
-
-      const recentCommits = commits.filter(commit => {
-        const dayAgo = new Date();
-        dayAgo.setDate(dayAgo.getDate() - 1);
-        return commit.date >= dayAgo;
-      });
-
-      res.json({
-        repos: repos.length,
-        lastSync: lastSyncRepo?.lastSyncAt ? `${Math.floor((Date.now() - lastSyncRepo.lastSyncAt.getTime()) / (1000 * 60 * 60))} hrs ago` : 'Never',
-        commits: recentCommits.length
-      });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch GitHub status" });
-    }
-  });
 
   // Email management
   app.get("/api/emails", async (req, res) => {

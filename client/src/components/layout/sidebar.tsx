@@ -23,11 +23,10 @@ export function Sidebar() {
           </div>
           <div>
             <h1 className="text-xl font-display font-bold text-gray-900">Sugarwish CRM</h1>
-            <p className="text-sm font-body text-gray-500">Internal Management</p>
+            <p className="text-sm font-body text-gray-500">Wish Desk Management</p>
           </div>
         </div>
       </div>
-      
       <nav className="p-4 space-y-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;

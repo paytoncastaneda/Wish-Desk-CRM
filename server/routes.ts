@@ -2,13 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { users, tasks, emails, reports, documentation } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, tasks, emails, reports, documentation, taskCategories, rolePermissions, auditLogs } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import { authenticate, requireRole, requirePermission, auditLog, type AuthenticatedRequest } from "./middleware/auth";
 import { githubService } from "./services/github";
 import { emailService } from "./services/email";
 import { reportsService } from "./services/reports";
 import { documentationService } from "./services/documentation";
-import { insertTaskSchema, insertEmailSchema, insertReportSchema, insertDocumentationSchema } from "@shared/schema";
+import { insertTaskSchema, insertEmailSchema, insertReportSchema, insertDocumentationSchema, insertTaskCategorySchema, insertUserSchema, insertRolePermissionSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats

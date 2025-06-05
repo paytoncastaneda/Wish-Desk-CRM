@@ -7,10 +7,46 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email"),
-  role: text("role").notNull().default("user"), // 'admin', 'sales_rep', 'user'
+  role: text("role").notNull().default("view_only"), // 'admin', 'mod', 'gc', 'view_only'
   firstName: text("first_name"),
   lastName: text("last_name"),
   isActive: boolean("is_active").notNull().default(true),
+  permissions: jsonb("permissions").default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const taskCategories = pgTable("task_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  color: text("color").default("#6b7280"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const rolePermissions = pgTable("role_permissions", {
+  id: serial("id").primaryKey(),
+  role: text("role").notNull(),
+  resource: text("resource").notNull(), // tasks, users, companies, reports, dashboard
+  actions: jsonb("actions").notNull(), // {create: true, read: true, update: true, delete: true}
+  conditions: jsonb("conditions"), // Additional conditions for access
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  action: text("action").notNull(),
+  resource: text("resource").notNull(),
+  resourceId: text("resource_id"),
+  oldValues: jsonb("old_values"),
+  newValues: jsonb("new_values"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -104,6 +140,38 @@ export const documentation = pgTable("documentation", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  email: true,
+  role: true,
+  firstName: true,
+  lastName: true,
+  isActive: true,
+  permissions: true,
+});
+
+export const insertTaskCategorySchema = createInsertSchema(taskCategories).pick({
+  name: true,
+  description: true,
+  color: true,
+  isActive: true,
+  createdBy: true,
+});
+
+export const insertRolePermissionSchema = createInsertSchema(rolePermissions).pick({
+  role: true,
+  resource: true,
+  actions: true,
+  conditions: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).pick({
+  userId: true,
+  action: true,
+  resource: true,
+  resourceId: true,
+  oldValues: true,
+  newValues: true,
+  ipAddress: true,
+  userAgent: true,
 });
 
 export const insertTaskSchema = createInsertSchema(tasks).pick({
@@ -168,6 +236,15 @@ export const insertDocumentationSchema = createInsertSchema(documentation).pick(
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export type InsertTaskCategory = z.infer<typeof insertTaskCategorySchema>;
+export type TaskCategory = typeof taskCategories.$inferSelect;
+
+export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
+export type RolePermission = typeof rolePermissions.$inferSelect;
+
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;

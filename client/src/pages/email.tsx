@@ -219,7 +219,7 @@ export default function EmailCenter() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Global Template</SelectItem>
+                            <SelectItem value="global">Global Template</SelectItem>
                             {users.map((user: any) => (
                               <SelectItem key={user.id} value={user.id.toString()}>
                                 {user.firstName} {user.lastName} ({user.role})

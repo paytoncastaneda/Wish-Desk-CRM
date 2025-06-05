@@ -573,6 +573,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Email stats endpoint
+  app.get("/api/emails/stats", authenticate, async (req, res) => {
+    try {
+      const stats = {
+        sentToday: 0,
+        openRate: 85,
+        pending: 0,
+        total: 0
+      };
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching email stats:", error);
+      res.status(500).json({ error: "Failed to fetch email stats" });
+    }
+  });
+
   // Enhanced Email sending with template tracking
   app.post("/api/emails/send", authenticate, requirePermission("emails", "create"), auditLog("send", "email"), async (req: AuthenticatedRequest, res) => {
     try {

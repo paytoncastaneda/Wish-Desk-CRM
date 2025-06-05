@@ -525,7 +525,7 @@ export default function AdminHub() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {auditLogs.slice(0, 20).map((log: any) => (
+                  {(auditLogs as any[]).slice(0, 20).map((log: any) => (
                     <TableRow key={log.id}>
                       <TableCell>{new Date(log.createdAt).toLocaleString()}</TableCell>
                       <TableCell>{log.userId || "System"}</TableCell>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { ChartLine, CheckSquare, Mail, BarChart3, FileText, Star } from "lucide-react";
+import { ChartLine, CheckSquare, Mail, BarChart3, FileText, Star, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
@@ -8,6 +8,7 @@ const navigationItems = [
   { href: "/email", label: "Email Center", icon: Mail },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/documentation", label: "Documentation", icon: FileText },
+  { href: "/admin", label: "Admin Hub", icon: Shield },
 ];
 
 export function Sidebar() {

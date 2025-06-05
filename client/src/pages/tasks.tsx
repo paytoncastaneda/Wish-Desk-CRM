@@ -150,6 +150,14 @@ export default function Tasks() {
       setEditingTask(null);
       toast({ title: "Task created successfully" });
     },
+    onError: (error: any) => {
+      console.error("Task creation error:", error);
+      toast({ 
+        title: "Failed to create task", 
+        description: error?.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
+    },
   });
 
   const updateTaskMutation = useMutation({
@@ -692,10 +700,19 @@ export default function Tasks() {
         swCompanies={swCompanies}
         opportunities={opportunities}
         onSubmit={(data) => {
-          if (editingTask) {
-            updateTaskMutation.mutate({ id: editingTask.taskId, ...data });
-          } else {
-            createTaskMutation.mutate(data);
+          try {
+            if (editingTask) {
+              updateTaskMutation.mutate({ id: editingTask.taskId, ...data });
+            } else {
+              createTaskMutation.mutate(data);
+            }
+          } catch (error) {
+            console.error("Task submission error:", error);
+            toast({ 
+              title: "Failed to submit task", 
+              description: "An unexpected error occurred while submitting the task",
+              variant: "destructive"
+            });
           }
         }}
       />
@@ -940,12 +957,12 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
     // Convert "none" values to null for submission
     const submissionData = {
       ...formData,
-      linkedSwCompanyId: formData.linkedSwCompanyId === "none" ? null : 
-        formData.linkedSwCompanyId ? parseInt(formData.linkedSwCompanyId as string) : null,
-      linkedSwUserId: formData.linkedSwUserId === "none" ? null : 
-        formData.linkedSwUserId ? parseInt(formData.linkedSwUserId as string) : null,
-      linkedSwCrmOpportunityId: formData.linkedSwCrmOpportunityId === "none" ? null : 
-        formData.linkedSwCrmOpportunityId ? parseInt(formData.linkedSwCrmOpportunityId as string) : null,
+      linkedSwCompanyId: formData.linkedSwCompanyId === "none" || formData.linkedSwCompanyId === null ? null : 
+        typeof formData.linkedSwCompanyId === 'string' ? parseInt(formData.linkedSwCompanyId) : formData.linkedSwCompanyId,
+      linkedSwUserId: formData.linkedSwUserId === "none" || formData.linkedSwUserId === null ? null : 
+        typeof formData.linkedSwUserId === 'string' ? parseInt(formData.linkedSwUserId) : formData.linkedSwUserId,
+      linkedSwCrmOpportunityId: formData.linkedSwCrmOpportunityId === "none" || formData.linkedSwCrmOpportunityId === null ? null : 
+        typeof formData.linkedSwCrmOpportunityId === 'string' ? parseInt(formData.linkedSwCrmOpportunityId) : formData.linkedSwCrmOpportunityId,
     };
     
     onSubmit(submissionData);

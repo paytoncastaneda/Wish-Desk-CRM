@@ -355,4 +355,163 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { users, tasks, emails, reports, documentation, type User, type Task, type Email, type Report, type Documentation, type InsertUser, type InsertTask, type InsertEmail, type InsertReport, type InsertDocumentation } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async getAllTasks(): Promise<Task[]> {
+    return await db.select().from(tasks);
+  }
+
+  async getTask(id: number): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task || undefined;
+  }
+
+  async createTask(insertTask: InsertTask): Promise<Task> {
+    const [task] = await db.insert(tasks).values({
+      ...insertTask,
+      description: insertTask.description || null,
+      status: insertTask.status || 'pending',
+      priority: insertTask.priority || 'medium'
+    }).returning();
+    return task;
+  }
+
+  async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task | undefined> {
+    const [task] = await db.update(tasks).set(updates).where(eq(tasks.id, id)).returning();
+    return task || undefined;
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    const result = await db.delete(tasks).where(eq(tasks.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getTasksByStatus(status: string): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.status, status));
+  }
+
+  async getTasksByPriority(priority: string): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.priority, priority));
+  }
+
+  // Deprecated GitHub methods - keeping for compatibility
+  async getAllRepos(): Promise<any[]> { return []; }
+  async getRepo(id: number): Promise<any> { return undefined; }
+  async getRepoByRepoId(repoId: number): Promise<any> { return undefined; }
+  async createRepo(repo: any): Promise<any> { return repo; }
+  async updateRepo(id: number, updates: any): Promise<any> { return undefined; }
+  async deleteRepo(id: number): Promise<boolean> { return false; }
+  async getAllCommits(): Promise<any[]> { return []; }
+  async getCommitsByRepo(repoId: number): Promise<any[]> { return []; }
+  async createCommit(commit: any): Promise<any> { return commit; }
+
+  async getAllEmails(): Promise<Email[]> {
+    return await db.select().from(emails);
+  }
+
+  async getEmail(id: number): Promise<Email | undefined> {
+    const [email] = await db.select().from(emails).where(eq(emails.id, id));
+    return email || undefined;
+  }
+
+  async createEmail(insertEmail: InsertEmail): Promise<Email> {
+    const [email] = await db.insert(emails).values({
+      ...insertEmail,
+      template: insertEmail.template || null
+    }).returning();
+    return email;
+  }
+
+  async updateEmail(id: number, updates: Partial<Email>): Promise<Email | undefined> {
+    const [email] = await db.update(emails).set(updates).where(eq(emails.id, id)).returning();
+    return email || undefined;
+  }
+
+  async deleteEmail(id: number): Promise<boolean> {
+    const result = await db.delete(emails).where(eq(emails.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getEmailsByStatus(status: string): Promise<Email[]> {
+    return await db.select().from(emails).where(eq(emails.status, status));
+  }
+
+  async getAllReports(): Promise<Report[]> {
+    return await db.select().from(reports);
+  }
+
+  async getReport(id: number): Promise<Report | undefined> {
+    const [report] = await db.select().from(reports).where(eq(reports.id, id));
+    return report || undefined;
+  }
+
+  async createReport(insertReport: InsertReport): Promise<Report> {
+    const [report] = await db.insert(reports).values({
+      ...insertReport,
+      description: insertReport.description || null,
+      config: insertReport.config || null
+    }).returning();
+    return report;
+  }
+
+  async updateReport(id: number, updates: Partial<Report>): Promise<Report | undefined> {
+    const [report] = await db.update(reports).set(updates).where(eq(reports.id, id)).returning();
+    return report || undefined;
+  }
+
+  async deleteReport(id: number): Promise<boolean> {
+    const result = await db.delete(reports).where(eq(reports.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getAllDocumentation(): Promise<Documentation[]> {
+    return await db.select().from(documentation);
+  }
+
+  async getDocumentation(id: number): Promise<Documentation | undefined> {
+    const [doc] = await db.select().from(documentation).where(eq(documentation.id, id));
+    return doc || undefined;
+  }
+
+  async createDocumentation(insertDoc: InsertDocumentation): Promise<Documentation> {
+    const [doc] = await db.insert(documentation).values({
+      ...insertDoc,
+      status: insertDoc.status || 'draft'
+    }).returning();
+    return doc;
+  }
+
+  async updateDocumentation(id: number, updates: Partial<InsertDocumentation>): Promise<Documentation | undefined> {
+    const [doc] = await db.update(documentation).set(updates).where(eq(documentation.id, id)).returning();
+    return doc || undefined;
+  }
+
+  async deleteDocumentation(id: number): Promise<boolean> {
+    const result = await db.delete(documentation).where(eq(documentation.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getDocumentationByCategory(category: string): Promise<Documentation[]> {
+    return await db.select().from(documentation).where(eq(documentation.category, category));
+  }
+}
+
+export const storage = new DatabaseStorage();

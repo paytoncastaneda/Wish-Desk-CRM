@@ -971,14 +971,77 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
               />
             </div>
             
+            {/* Expiration Date - Only visible to MOD/Admin users */}
+            {user?.role === 'admin' || user?.role === 'mod' ? (
+              <div>
+                <Label className="text-[#2d3333] font-lato">Expiration Date (MOD Use)</Label>
+                <Input
+                  type="datetime-local"
+                  value={formData.expirationDate ? new Date(formData.expirationDate).toISOString().slice(0, 16) : ""}
+                  onChange={(e) => setFormData({...formData, expirationDate: e.target.value ? new Date(e.target.value) : null})}
+                  className="border-[#cccccc] focus:border-[#55c5ce]"
+                />
+              </div>
+            ) : null}
+            
             <div>
-              <Label className="text-[#2d3333] font-lato">Expiration Date (MOD Use)</Label>
-              <Input
-                type="datetime-local"
-                value={formData.expirationDate ? new Date(formData.expirationDate).toISOString().slice(0, 16) : ""}
-                onChange={(e) => setFormData({...formData, expirationDate: e.target.value ? new Date(e.target.value) : null})}
-                className="border-[#cccccc] focus:border-[#55c5ce]"
-              />
+              <Label className="text-[#2d3333] font-lato">Linked Company</Label>
+              <Select 
+                value={formData.linkedSwCompanyId?.toString() || ""} 
+                onValueChange={(value) => setFormData({...formData, linkedSwCompanyId: value ? parseInt(value) : null})}
+              >
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="Search and select company..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Company</SelectItem>
+                  {swCompanies.map((company) => (
+                    <SelectItem key={company.id} value={company.id.toString()}>
+                      {company.companyName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Linked Contact</Label>
+              <Select 
+                value={formData.linkedSwUserId?.toString() || ""} 
+                onValueChange={(value) => setFormData({...formData, linkedSwUserId: value ? parseInt(value) : null})}
+              >
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="Search and select contact..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Contact</SelectItem>
+                  {swUsers.map((swUser) => (
+                    <SelectItem key={swUser.id} value={swUser.id.toString()}>
+                      {swUser.firstName} {swUser.lastName} - {swUser.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Linked Opportunity</Label>
+              <Select 
+                value={formData.linkedSwCrmOpportunityId?.toString() || ""} 
+                onValueChange={(value) => setFormData({...formData, linkedSwCrmOpportunityId: value ? parseInt(value) : null})}
+              >
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="Select opportunity..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Opportunity</SelectItem>
+                  {opportunities.map((opp) => (
+                    <SelectItem key={opp.id} value={opp.id.toString()}>
+                      {opp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           

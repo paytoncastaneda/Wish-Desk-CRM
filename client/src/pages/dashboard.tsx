@@ -45,6 +45,11 @@ export default function Dashboard() {
     enabled: !!showDrillDown && showDrillDown === 'emailsSent',
   });
 
+  const { data: opportunitiesBreakdown } = useQuery({
+    queryKey: ["/api/opportunities/breakdown"],
+    enabled: !!showDrillDown && showDrillDown === 'opportunities',
+  });
+
   const { data: teamData } = useQuery({
     queryKey: ["/api/gc/team-comparison"],
   });

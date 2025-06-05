@@ -965,6 +965,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Opportunities breakdown endpoint for Opportunities drill-down
+  app.get("/api/opportunities/breakdown", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const startOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+
+      // Get all opportunities for the current user
+      const userOpportunities = await storage.getOpportunitiesByUser(userId);
+
+      // Calculate close rate for this month
+      const thisMonthOpportunities = userOpportunities.filter(opp => {
+        if (!opp.actualCloseDate) return false;
+        const closeDate = new Date(opp.actualCloseDate);
+        return closeDate >= startOfMonth && closeDate <= endOfMonth;
+      });
+
+      const wonThisMonth = thisMonthOpportunities.filter(opp => opp.status === 'won').length;
+      const totalClosedThisMonth = thisMonthOpportunities.length;
+      const closeRate = totalClosedThisMonth > 0 ? Math.round((wonThisMonth / totalClosedThisMonth) * 100) : 0;
+
+      // Categorize open opportunities
+      const openOpportunities = userOpportunities.filter(opp => opp.status === 'open');
+      
+      const breakdown = {
+        closeRate,
+        overdueOpportunities: 0,
+        currentMonthOpportunities: 0,
+        futureOpportunities: 0
+      };
+
+      openOpportunities.forEach(opp => {
+        if (!opp.estimatedShipDate) {
+          breakdown.futureOpportunities++;
+          return;
+        }
+
+        const shipDate = new Date(opp.estimatedShipDate);
+        
+        if (shipDate < today) {
+          breakdown.overdueOpportunities++;
+        } else if (shipDate >= startOfMonth && shipDate <= endOfMonth) {
+          breakdown.currentMonthOpportunities++;
+        } else if (shipDate >= startOfNextMonth) {
+          breakdown.futureOpportunities++;
+        }
+      });
+
+      res.json(breakdown);
+    } catch (error) {
+      console.error("Error fetching opportunities breakdown:", error);
+      res.status(500).json({ error: "Failed to fetch opportunities breakdown" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

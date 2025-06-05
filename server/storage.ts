@@ -59,6 +59,14 @@ export interface IStorage {
   updateDocumentation(id: number, updates: Partial<InsertDocumentation>): Promise<Documentation | undefined>;
   deleteDocumentation(id: number): Promise<boolean>;
   getDocumentationByCategory(category: string): Promise<Documentation[]>;
+
+  // Opportunities
+  getAllOpportunities(): Promise<Opportunity[]>;
+  getOpportunity(id: number): Promise<Opportunity | undefined>;
+  createOpportunity(opportunity: InsertOpportunity): Promise<Opportunity>;
+  updateOpportunity(id: number, updates: Partial<InsertOpportunity>): Promise<Opportunity | undefined>;
+  deleteOpportunity(id: number): Promise<boolean>;
+  getOpportunitiesByUser(userId: number): Promise<Opportunity[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -249,6 +257,43 @@ export class DatabaseStorage implements IStorage {
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(swcrmOutreachTemplates.id, id));
     return true;
+  }
+
+  // Opportunities operations
+  async getAllOpportunities(): Promise<Opportunity[]> {
+    return await db.select().from(opportunities);
+  }
+
+  async getOpportunity(id: number): Promise<Opportunity | undefined> {
+    const result = await db.select().from(opportunities).where(eq(opportunities.id, id));
+    return result[0];
+  }
+
+  async createOpportunity(insertOpportunity: InsertOpportunity): Promise<Opportunity> {
+    const result = await db.insert(opportunities).values(insertOpportunity).returning();
+    return result[0];
+  }
+
+  async updateOpportunity(id: number, updates: Partial<InsertOpportunity>): Promise<Opportunity | undefined> {
+    const result = await db.update(opportunities)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(opportunities.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteOpportunity(id: number): Promise<boolean> {
+    try {
+      await db.delete(opportunities).where(eq(opportunities.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting opportunity:", error);
+      return false;
+    }
+  }
+
+  async getOpportunitiesByUser(userId: number): Promise<Opportunity[]> {
+    return await db.select().from(opportunities).where(eq(opportunities.assignedUserId, userId));
   }
 }
 

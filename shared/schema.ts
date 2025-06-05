@@ -50,6 +50,64 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Renamed to match PRD specification: swcrm_tasks table
+export const swcrmTasks = pgTable("swcrm_tasks", {
+  // Core identifiers
+  taskId: serial("task_id").primaryKey(),
+  
+  // Ownership and creation tracking
+  taskOwner: integer("task_owner").references(() => users.id).notNull(),
+  taskCreatedBy: integer("task_created_by").references(() => users.id).notNull(),
+  
+  // Task details
+  taskName: text("task_name").notNull(),
+  category: text("category").notNull(), // CALL, EMAIL, MEETING, etc.
+  taskDetails: text("task_details"),
+  
+  // Dates and priority
+  dateDue: timestamp("date_due"),
+  expirationDate: timestamp("expiration_date"), // Non-editable by Sales Rep, for MOD review
+  priority: integer("priority").default(1), // 1=low, 2=medium, 3=high
+  
+  // Status management
+  status: text("status").notNull().default("Not Started"), // "Not Started", "Complete"
+  
+  // Linking to entities
+  linkedSwUserId: integer("linked_sw_user_id").references(() => swUsers.id),
+  linkedSwCompanyId: integer("linked_sw_company_id").references(() => swCompany.id),
+  linkedSwCrmProposalId: integer("linked_swcrm_proposal_id"), // Future implementation
+  linkedSwCrmOpportunityId: integer("linked_swcrm_opportunity_id").references(() => opportunities.id),
+  linkedSwCrmNotesId: integer("linked_swcrm_notes_id"), // Future implementation
+  linkedSwCrmPromotionsId: integer("linked_swcrm_promotions_id"), // Future implementation
+  
+  // Sidekick assignment (User ID, not boolean as per PRD)
+  assignToSidekick: integer("assign_to_sidekick").references(() => users.id),
+  
+  // Recurrence settings
+  isRecurring: boolean("is_recurring").default(false),
+  recurrencePattern: text("recurrence_pattern"), // "daily", "weekly", "monthly"
+  recurrenceInterval: integer("recurrence_interval").default(1), // Every X days/weeks/months
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Task list views and templates
+export const taskViews = pgTable("task_views", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isGlobal: boolean("is_global").default(false), // Global vs personal templates
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  filterConfig: jsonb("filter_config").notNull(), // Store filter criteria
+  columnConfig: jsonb("column_config"), // Store column visibility/order
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Keep old tasks table for backward compatibility during transition
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
   taskName: text("task_name").notNull(),
@@ -378,6 +436,41 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).pick({
   userAgent: true,
 });
 
+// New swcrm_tasks insert schema
+export const insertSwcrmTaskSchema = createInsertSchema(swcrmTasks).pick({
+  taskOwner: true,
+  taskCreatedBy: true,
+  taskName: true,
+  category: true,
+  taskDetails: true,
+  dateDue: true,
+  expirationDate: true,
+  priority: true,
+  status: true,
+  linkedSwUserId: true,
+  linkedSwCompanyId: true,
+  linkedSwCrmProposalId: true,
+  linkedSwCrmOpportunityId: true,
+  linkedSwCrmNotesId: true,
+  linkedSwCrmPromotionsId: true,
+  assignToSidekick: true,
+  isRecurring: true,
+  recurrencePattern: true,
+  recurrenceInterval: true,
+});
+
+// Task views insert schema
+export const insertTaskViewSchema = createInsertSchema(taskViews).pick({
+  name: true,
+  description: true,
+  isGlobal: true,
+  createdBy: true,
+  filterConfig: true,
+  columnConfig: true,
+  isActive: true,
+});
+
+// Backward compatibility - keep old task schema
 export const insertTaskSchema = createInsertSchema(tasks).pick({
   taskName: true,
   taskOwner: true,
@@ -509,3 +602,15 @@ export type Documentation = typeof documentation.$inferSelect;
 
 export type InsertOpportunity = z.infer<typeof insertOpportunitySchema>;
 export type Opportunity = typeof opportunities.$inferSelect;
+
+// New swcrm_tasks types
+export type InsertSwcrmTask = z.infer<typeof insertSwcrmTaskSchema>;
+export type SwcrmTask = typeof swcrmTasks.$inferSelect;
+
+export type InsertTaskView = z.infer<typeof insertTaskViewSchema>;
+export type TaskView = typeof taskViews.$inferSelect;
+
+// Sugarwish User and Company types
+export type SwUser = typeof swUsers.$inferSelect;
+export type SwCompany = typeof swCompany.$inferSelect;
+export type SwCompanyUsersPivot = typeof swCompanyUsersPivot.$inferSelect;

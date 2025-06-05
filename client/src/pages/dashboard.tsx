@@ -162,7 +162,7 @@ export default function Dashboard() {
           value={(stats as any)?.totalOpportunities || 8}
           icon={Target}
           change="+3%"
-          color="bg-blue-500"
+          color="bg-[#55c5ce]"
           onClick={() => setShowDrillDown(showDrillDown === 'opportunities' ? null : 'opportunities')}
         />
       </div>
@@ -359,40 +359,40 @@ export default function Dashboard() {
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 bg-green-50 rounded-lg border">
+              <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ccedf0', borderColor: '#55c5ce' }}>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold" style={{ color: '#277e88' }}>
                     {(opportunitiesBreakdown as any)?.closeRate || 0}%
                   </div>
-                  <div className="text-sm font-medium text-green-700">Close Rate</div>
-                  <div className="text-xs text-green-500 mt-1">Won opportunities this month</div>
+                  <div className="text-sm font-medium" style={{ color: '#1b575e' }}>Close Rate</div>
+                  <div className="text-xs mt-1" style={{ color: '#277e88' }}>Won opportunities this month</div>
                 </div>
               </div>
-              <div className="p-4 bg-red-50 rounded-lg border">
+              <div className="p-4 rounded-lg border" style={{ backgroundColor: '#f6cbcb', borderColor: '#d2232a' }}>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
+                  <div className="text-2xl font-bold" style={{ color: '#a61c25' }}>
                     {(opportunitiesBreakdown as any)?.overdueOpportunities || 0}
                   </div>
-                  <div className="text-sm font-medium text-red-700">Overdue Opportunities</div>
-                  <div className="text-xs text-red-500 mt-1">Past estimated ship date</div>
+                  <div className="text-sm font-medium" style={{ color: '#721319' }}>Overdue Opportunities</div>
+                  <div className="text-xs mt-1" style={{ color: '#a61c25' }}>Past estimated ship date</div>
                 </div>
               </div>
-              <div className="p-4 bg-orange-50 rounded-lg border">
+              <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ffd580', borderColor: '#ffd580' }}>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-2xl font-bold" style={{ color: '#2d3333' }}>
                     {(opportunitiesBreakdown as any)?.currentMonthOpportunities || 0}
                   </div>
-                  <div className="text-sm font-medium text-orange-700">Current Month Opportunities</div>
-                  <div className="text-xs text-orange-500 mt-1">Ship date this month</div>
+                  <div className="text-sm font-medium" style={{ color: '#2d3333' }}>Current Month Opportunities</div>
+                  <div className="text-xs mt-1" style={{ color: '#737373' }}>Ship date this month</div>
                 </div>
               </div>
-              <div className="p-4 bg-blue-50 rounded-lg border">
+              <div className="p-4 rounded-lg border" style={{ backgroundColor: '#f3fbfc', borderColor: '#55c5ce' }}>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold" style={{ color: '#277e88' }}>
                     {(opportunitiesBreakdown as any)?.futureOpportunities || 0}
                   </div>
-                  <div className="text-sm font-medium text-blue-700">Future Opportunities</div>
-                  <div className="text-xs text-blue-500 mt-1">Next month and beyond</div>
+                  <div className="text-sm font-medium" style={{ color: '#1b575e' }}>Future Opportunities</div>
+                  <div className="text-xs mt-1" style={{ color: '#277e88' }}>Next month and beyond</div>
                 </div>
               </div>
             </div>

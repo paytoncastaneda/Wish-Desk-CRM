@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { users, tasks, emails, reports, documentation } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { githubService } from "./services/github";
 import { emailService } from "./services/email";
 import { reportsService } from "./services/reports";
@@ -30,6 +33,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Users API - Sales Representatives
+  app.get("/api/users/sales-reps", async (req, res) => {
+    try {
+      const salesReps = await db.select().from(users).where(eq(users.role, 'sales_rep'));
+      res.json(salesReps);
+    } catch (error) {
+      console.error("Error fetching sales reps:", error);
+      res.status(500).json({ error: "Failed to fetch sales representatives" });
+    }
+  });
+
+  app.get("/api/users", async (req, res) => {
+    try {
+      const allUsers = await db.select().from(users).where(eq(users.isActive, true));
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
     }
   });
 

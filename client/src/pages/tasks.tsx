@@ -11,7 +11,7 @@ import { Plus, Edit, Trash2, Calendar, User } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { TaskForm } from "@/components/task-form";
+import { EnhancedTaskForm } from "@/components/enhanced-task-form";
 import type { Task } from "@shared/schema";
 
 export default function Tasks() {
@@ -135,7 +135,7 @@ export default function Tasks() {
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
             </DialogHeader>
-            <TaskForm onSuccess={() => {
+            <EnhancedTaskForm onSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
             }} />
           </DialogContent>

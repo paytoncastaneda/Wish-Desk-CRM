@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Calendar, User } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { TaskForm } from "@/components/task-form";
 import type { Task } from "@shared/schema";
 
 export default function Tasks() {
@@ -18,7 +20,7 @@ export default function Tasks() {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks", { status: statusFilter, priority: priorityFilter }],
   });
 
@@ -122,10 +124,22 @@ export default function Tasks() {
           <h3 className="text-xl font-semibold text-gray-900">Task Management</h3>
           <p className="text-sm text-gray-500">Organize and track your team's tasks</p>
         </div>
-        <Button className="bg-primary hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          New Task
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              New Task
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Task</DialogTitle>
+            </DialogHeader>
+            <TaskForm onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+            }} />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}

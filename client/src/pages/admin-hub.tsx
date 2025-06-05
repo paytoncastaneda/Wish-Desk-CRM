@@ -462,7 +462,7 @@ export default function AdminHub() {
                           <h4 className="font-medium">
                             {role === "admin" && "Administrator - Full system access"}
                             {role === "mod" && "Moderator - Most features, cannot override admin settings"}
-                            {role === "gc" && "General Coordinator - View most data, limited edit access"}
+                            {role === "gc" && "Gift Concierge - View most data, edit customer-facing fields"}
                             {role === "view_only" && "View Only - Read-only access to permitted items"}
                           </h4>
                         </div>

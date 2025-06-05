@@ -344,7 +344,7 @@ export default function Tasks() {
             
             <div>
               <Label className="text-[#2d3333] font-lato">Status</Label>
-              <Select value={filters.status || ""} onValueChange={(value) => setFilters({...filters, status: value || undefined})}>
+              <Select value={filters.status || "all"} onValueChange={(value) => setFilters({...filters, status: value === "all" ? undefined : value})}>
                 <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
@@ -358,7 +358,7 @@ export default function Tasks() {
             
             <div>
               <Label className="text-[#2d3333] font-lato">Priority</Label>
-              <Select value={filters.priority?.toString() || ""} onValueChange={(value) => setFilters({...filters, priority: value ? parseInt(value) : undefined})}>
+              <Select value={filters.priority?.toString() || "all"} onValueChange={(value) => setFilters({...filters, priority: value === "all" ? undefined : parseInt(value)})}>
                 <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
                   <SelectValue placeholder="All priorities" />
                 </SelectTrigger>
@@ -373,7 +373,7 @@ export default function Tasks() {
             
             <div>
               <Label className="text-[#2d3333] font-lato">Category</Label>
-              <Select value={filters.category || ""} onValueChange={(value) => setFilters({...filters, category: value || undefined})}>
+              <Select value={filters.category || "all"} onValueChange={(value) => setFilters({...filters, category: value === "all" ? undefined : value})}>
                 <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
                   <SelectValue placeholder="All categories" />
                 </SelectTrigger>
@@ -390,12 +390,12 @@ export default function Tasks() {
             
             <div>
               <Label className="text-[#2d3333] font-lato">Assigned To</Label>
-              <Select value={filters.taskOwner?.toString() || ""} onValueChange={(value) => setFilters({...filters, taskOwner: value ? parseInt(value) : undefined})}>
+              <Select value={filters.taskOwner?.toString() || "all"} onValueChange={(value) => setFilters({...filters, taskOwner: value === "all" ? undefined : parseInt(value)})}>
                 <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
                   <SelectValue placeholder="All users" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All users</SelectItem>
+                  <SelectItem value="all">All users</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstName} {user.lastName}
@@ -407,12 +407,12 @@ export default function Tasks() {
             
             <div>
               <Label className="text-[#2d3333] font-lato">Company</Label>
-              <Select value={filters.linkedSwCompanyId?.toString() || ""} onValueChange={(value) => setFilters({...filters, linkedSwCompanyId: value ? parseInt(value) : undefined})}>
+              <Select value={filters.linkedSwCompanyId?.toString() || "all"} onValueChange={(value) => setFilters({...filters, linkedSwCompanyId: value === "all" ? undefined : parseInt(value)})}>
                 <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
                   <SelectValue placeholder="All companies" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All companies</SelectItem>
+                  <SelectItem value="all">All companies</SelectItem>
                   {swCompanies.map((company) => (
                     <SelectItem key={company.id} value={company.id.toString()}>
                       {company.name}

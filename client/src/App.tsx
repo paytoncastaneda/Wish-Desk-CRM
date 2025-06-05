@@ -5,9 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import Tasks from "@/pages/tasks";
-import Email from "@/pages/email";
-import Reports from "@/pages/reports";
 import Opportunities from "@/pages/opportunities";
+import Proposals from "@/pages/proposals";
+import Companies from "@/pages/companies";
+import Contacts from "@/pages/contacts";
+import Email from "@/pages/email";
+import Designs from "@/pages/designs";
+import Reports from "@/pages/reports";
 import AdminHub from "@/pages/admin-hub";
 import GCDashboard from "@/pages/gc-dashboard";
 import NotFound from "@/pages/not-found";
@@ -26,9 +30,13 @@ function Router() {
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/gc-dashboard" component={GCDashboard} />
             <Route path="/tasks" component={Tasks} />
-            <Route path="/email" component={Email} />
-            <Route path="/reports" component={Reports} />
             <Route path="/opportunities" component={Opportunities} />
+            <Route path="/proposals" component={Proposals} />
+            <Route path="/companies" component={Companies} />
+            <Route path="/contacts" component={Contacts} />
+            <Route path="/email" component={Email} />
+            <Route path="/designs" component={Designs} />
+            <Route path="/reports" component={Reports} />
             <Route path="/admin" component={AdminHub} />
             <Route component={NotFound} />
           </Switch>

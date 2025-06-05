@@ -1,13 +1,17 @@
 import { Link, useLocation } from "wouter";
-import { ChartLine, CheckSquare, Mail, BarChart3, Target, Star, Shield } from "lucide-react";
+import { ChartLine, CheckSquare, Target, FileText, Building, Users, Mail, Palette, BarChart3, Star, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
   { href: "/dashboard", label: "Dashboard", icon: ChartLine },
-  { href: "/tasks", label: "Task Management", icon: CheckSquare },
-  { href: "/email", label: "Email Center", icon: Mail },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/opportunities", label: "Opportunities", icon: Target },
+  { href: "/proposals", label: "Proposals", icon: FileText },
+  { href: "/companies", label: "Companies", icon: Building },
+  { href: "/contacts", label: "Contacts (Users)", icon: Users },
+  { href: "/email", label: "Email", icon: Mail },
+  { href: "/designs", label: "Designs", icon: Palette },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin", label: "Admin Hub", icon: Shield },
 ];
 

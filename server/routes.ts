@@ -1139,6 +1139,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SWCRM Tasks endpoints
+  app.get("/api/swcrm-tasks", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const filters = req.query;
+      const tasks = await storage.getAllSwcrmTasks(filters);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching SWCRM tasks:", error);
+      res.status(500).json({ error: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post("/api/swcrm-tasks", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      const taskData = {
+        ...req.body,
+        taskCreatedBy: userId,
+        taskOwner: req.body.taskOwner || userId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const task = await storage.createSwcrmTask(taskData);
+      res.json(task);
+    } catch (error) {
+      console.error("Error creating SWCRM task:", error);
+      res.status(500).json({ error: "Failed to create task" });
+    }
+  });
+
+  app.put("/api/swcrm-tasks/:id", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updatedTask = await storage.updateSwcrmTask(id, req.body);
+      
+      if (!updatedTask) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      
+      res.json(updatedTask);
+    } catch (error) {
+      console.error("Error updating SWCRM task:", error);
+      res.status(500).json({ error: "Failed to update task" });
+    }
+  });
+
+  app.delete("/api/swcrm-tasks/:id", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteSwcrmTask(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting SWCRM task:", error);
+      res.status(500).json({ error: "Failed to delete task" });
+    }
+  });
+
+  app.post("/api/swcrm-tasks/:id/duplicate", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const duplicatedTask = await storage.duplicateSwcrmTask(id);
+      res.json(duplicatedTask);
+    } catch (error) {
+      console.error("Error duplicating SWCRM task:", error);
+      res.status(500).json({ error: "Failed to duplicate task" });
+    }
+  });
+
+  // Task Views endpoints
+  app.get("/api/task-views", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      const views = await storage.getAllTaskViews(userId);
+      res.json(views);
+    } catch (error) {
+      console.error("Error fetching task views:", error);
+      res.status(500).json({ error: "Failed to fetch task views" });
+    }
+  });
+
+  app.post("/api/task-views", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      const viewData = {
+        ...req.body,
+        createdBy: userId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const view = await storage.createTaskView(viewData);
+      res.json(view);
+    } catch (error) {
+      console.error("Error creating task view:", error);
+      res.status(500).json({ error: "Failed to create task view" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

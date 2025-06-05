@@ -110,19 +110,25 @@ export class DatabaseStorage implements IStorage {
 
   // SWCRM Task operations (New comprehensive system)
   async getAllSwcrmTasks(filters?: any): Promise<SwcrmTask[]> {
-    let query = db.select().from(swcrmTasks);
+    const whereConditions = [];
     
     if (filters?.status) {
-      query = query.where(eq(swcrmTasks.status, filters.status));
+      whereConditions.push(eq(swcrmTasks.status, filters.status as string));
     }
     if (filters?.priority) {
-      query = query.where(eq(swcrmTasks.priority, filters.priority));
+      whereConditions.push(eq(swcrmTasks.priority, parseInt(filters.priority as string)));
     }
     if (filters?.taskOwner) {
-      query = query.where(eq(swcrmTasks.taskOwner, filters.taskOwner));
+      whereConditions.push(eq(swcrmTasks.taskOwner, parseInt(filters.taskOwner as string)));
     }
     if (filters?.category) {
-      query = query.where(eq(swcrmTasks.category, filters.category));
+      whereConditions.push(eq(swcrmTasks.category, filters.category as string));
+    }
+    
+    let query = db.select().from(swcrmTasks);
+    
+    if (whereConditions.length > 0) {
+      query = query.where(and(...whereConditions));
     }
     
     return await query.orderBy(desc(swcrmTasks.createdAt));
@@ -200,6 +206,10 @@ export class DatabaseStorage implements IStorage {
     };
 
     return await this.createSwcrmTask(newTask);
+  }
+
+  async duplicateSwcrmTask(id: number): Promise<SwcrmTask> {
+    return await this.duplicateTaskForRecurrence(id) as SwcrmTask;
   }
 
   // Task Views operations

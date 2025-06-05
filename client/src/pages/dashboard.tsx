@@ -373,7 +373,7 @@ export default function Dashboard() {
                   <div className="text-xs mt-1" style={{ color: '#a61c25' }}>Past estimated ship date</div>
                 </div>
               </div>
-              <div className="p-4 rounded-lg border" style={{ backgroundColor: '#ffd580', borderColor: '#ffd580' }}>
+              <div className="p-4 rounded-lg border bg-[#528232] text-[#ffffff]" style={{ backgroundColor: '#ffd580', borderColor: '#ffd580' }}>
                 <div className="text-center">
                   <div className="text-2xl font-bold" style={{ color: '#2d3333' }}>
                     {(opportunitiesBreakdown as any)?.currentMonthOpportunities || 0}

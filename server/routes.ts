@@ -857,6 +857,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Opportunities CRUD operations
+  app.get("/api/opportunities", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const opportunities = await storage.getAllOpportunities();
+      res.json(opportunities);
+    } catch (error) {
+      console.error("Error fetching opportunities:", error);
+      res.status(500).json({ error: "Failed to fetch opportunities" });
+    }
+  });
+
+  app.get("/api/opportunities/:id", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const opportunity = await storage.getOpportunity(id);
+      
+      if (!opportunity) {
+        return res.status(404).json({ error: "Opportunity not found" });
+      }
+      
+      res.json(opportunity);
+    } catch (error) {
+      console.error("Error fetching opportunity:", error);
+      res.status(500).json({ error: "Failed to fetch opportunity" });
+    }
+  });
+
+  app.post("/api/opportunities", authenticate, requirePermission("opportunities", "create"), auditLog("create", "opportunity"), async (req: AuthenticatedRequest, res) => {
+    try {
+      const opportunityData = req.body;
+      const opportunity = await storage.createOpportunity(opportunityData);
+      res.status(201).json(opportunity);
+    } catch (error) {
+      console.error("Error creating opportunity:", error);
+      res.status(500).json({ error: "Failed to create opportunity" });
+    }
+  });
+
+  app.put("/api/opportunities/:id", authenticate, requirePermission("opportunities", "update"), auditLog("update", "opportunity"), async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const opportunity = await storage.updateOpportunity(id, updates);
+      
+      if (!opportunity) {
+        return res.status(404).json({ error: "Opportunity not found" });
+      }
+      
+      res.json(opportunity);
+    } catch (error) {
+      console.error("Error updating opportunity:", error);
+      res.status(500).json({ error: "Failed to update opportunity" });
+    }
+  });
+
+  app.delete("/api/opportunities/:id", authenticate, requirePermission("opportunities", "delete"), auditLog("delete", "opportunity"), async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteOpportunity(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Opportunity not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting opportunity:", error);
+      res.status(500).json({ error: "Failed to delete opportunity" });
+    }
+  });
+
+  // Get companies for opportunity creation
+  app.get("/api/companies", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      // Return sample companies for now - this would connect to the sw_company table
+      const companies = [
+        { id: 1, name: "Sample Company A" },
+        { id: 2, name: "Sample Company B" },
+        { id: 3, name: "Sample Company C" }
+      ];
+      res.json(companies);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  // Get all users for assignment dropdown
+  app.get("/api/users", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      // Get users with gc role or admin role for assignment
+      const users = [
+        { id: 1, username: "admin", firstName: "Admin", lastName: "User", role: "admin" },
+        { id: 2, username: "gc1", firstName: "GC", lastName: "One", role: "gc" },
+        { id: 3, username: "gc2", firstName: "GC", lastName: "Two", role: "gc" }
+      ];
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Get current user info
+  app.get("/api/user", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      res.json(req.user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
   // Task breakdown endpoint for Active Tasks drill-down
   app.get("/api/tasks/breakdown", authenticate, async (req: AuthenticatedRequest, res) => {
     try {

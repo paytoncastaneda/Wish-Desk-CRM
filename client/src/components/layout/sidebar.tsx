@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { ChartLine, CheckSquare, Mail, BarChart3, FileText, Star, Shield } from "lucide-react";
+import { ChartLine, CheckSquare, Mail, BarChart3, Target, Star, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
@@ -7,7 +7,7 @@ const navigationItems = [
   { href: "/tasks", label: "Task Management", icon: CheckSquare },
   { href: "/email", label: "Email Center", icon: Mail },
   { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/documentation", label: "Documentation", icon: FileText },
+  { href: "/opportunities", label: "Opportunities", icon: Target },
   { href: "/admin", label: "Admin Hub", icon: Shield },
 ];
 

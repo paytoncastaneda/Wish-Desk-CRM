@@ -2,14 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { users, tasks, emails, reports, documentation, taskCategories, rolePermissions, auditLogs } from "@shared/schema";
+import { users, tasks, emails, reports, documentation, taskCategories, rolePermissions, auditLogs, swcrmOutreachTemplates, swcrmTemplateUsage } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { authenticate, requireRole, requirePermission, auditLog, type AuthenticatedRequest } from "./middleware/auth";
 import { githubService } from "./services/github";
 import { emailService } from "./services/email";
 import { reportsService } from "./services/reports";
 import { documentationService } from "./services/documentation";
-import { insertTaskSchema, insertEmailSchema, insertReportSchema, insertDocumentationSchema, insertTaskCategorySchema, insertUserSchema, insertRolePermissionSchema } from "@shared/schema";
+import { insertTaskSchema, insertEmailSchema, insertReportSchema, insertDocumentationSchema, insertTaskCategorySchema, insertUserSchema, insertRolePermissionSchema, insertSwcrmOutreachTemplateSchema, insertSwcrmTemplateUsageSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
@@ -512,6 +512,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching audit logs:", error);
       res.status(500).json({ error: "Failed to fetch audit logs" });
+    }
+  });
+
+  // Email Template API Routes
+  app.get("/api/email-templates", authenticate, async (req, res) => {
+    try {
+      const templates = await db.select().from(swcrmOutreachTemplates).where(eq(swcrmOutreachTemplates.isActive, true));
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching email templates:", error);
+      res.status(500).json({ error: "Failed to fetch email templates" });
+    }
+  });
+
+  app.post("/api/email-templates", authenticate, requirePermission("templates", "create"), auditLog("create", "email_template"), async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = insertSwcrmOutreachTemplateSchema.parse({
+        ...req.body,
+        createdBy: req.user?.id
+      });
+      
+      const [template] = await db.insert(swcrmOutreachTemplates).values(validatedData).returning();
+      res.json(template);
+    } catch (error) {
+      console.error("Error creating email template:", error);
+      res.status(500).json({ error: "Failed to create email template" });
+    }
+  });
+
+  app.put("/api/email-templates/:id", authenticate, requirePermission("templates", "update"), auditLog("update", "email_template"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertSwcrmOutreachTemplateSchema.partial().parse(req.body);
+      
+      const [template] = await db
+        .update(swcrmOutreachTemplates)
+        .set({ ...validatedData, updatedAt: new Date() })
+        .where(eq(swcrmOutreachTemplates.id, id))
+        .returning();
+      
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating email template:", error);
+      res.status(500).json({ error: "Failed to update email template" });
+    }
+  });
+
+  app.delete("/api/email-templates/:id", authenticate, requirePermission("templates", "delete"), auditLog("delete", "email_template"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db
+        .update(swcrmOutreachTemplates)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(swcrmOutreachTemplates.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting email template:", error);
+      res.status(500).json({ error: "Failed to delete email template" });
+    }
+  });
+
+  // Enhanced Email sending with template tracking
+  app.post("/api/emails/send", authenticate, requirePermission("emails", "create"), auditLog("send", "email"), async (req: AuthenticatedRequest, res) => {
+    try {
+      const { to, subject, body, templateId } = req.body;
+      
+      // Create email record
+      const [email] = await db.insert(emails).values({
+        to,
+        subject,
+        body,
+        templateId,
+        status: "sent",
+        sentAt: new Date()
+      }).returning();
+
+      // Track template usage if template was used
+      if (templateId) {
+        await db.insert(swcrmTemplateUsage).values({
+          templateId,
+          usedBy: req.user?.id,
+          recipientEmail: to
+        });
+      }
+
+      // Here you would integrate with your actual email service
+      console.log("Email sent:", { to, subject });
+      
+      res.json(email);
+    } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(500).json({ error: "Failed to send email" });
     }
   });
 

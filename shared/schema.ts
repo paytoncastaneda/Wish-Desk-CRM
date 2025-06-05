@@ -112,7 +112,7 @@ export const emails = pgTable("emails", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const emailTemplates = pgTable("email_templates", {
+export const swcrmOutreachTemplates = pgTable("swcrm_outreach_templates", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   subject: text("subject").notNull(),
@@ -126,9 +126,9 @@ export const emailTemplates = pgTable("email_templates", {
   isActive: boolean("is_active").default(true),
 });
 
-export const emailTemplateUsage = pgTable("email_template_usage", {
+export const swcrmTemplateUsage = pgTable("swcrm_template_usage", {
   id: serial("id").primaryKey(),
-  templateId: integer("template_id").references(() => emailTemplates.id),
+  templateId: integer("template_id").references(() => swcrmOutreachTemplates.id),
   usedBy: integer("used_by").references(() => users.id),
   taskId: integer("task_id").references(() => tasks.id),
   recipientEmail: text("recipient_email"),
@@ -406,7 +406,7 @@ export const insertEmailSchema = createInsertSchema(emails).pick({
   templateId: true,
 });
 
-export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick({
+export const insertSwcrmOutreachTemplateSchema = createInsertSchema(swcrmOutreachTemplates).pick({
   name: true,
   subject: true,
   htmlContent: true,
@@ -417,7 +417,7 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick
   isActive: true,
 });
 
-export const insertEmailTemplateUsageSchema = createInsertSchema(emailTemplateUsage).pick({
+export const insertSwcrmTemplateUsageSchema = createInsertSchema(swcrmTemplateUsage).pick({
   templateId: true,
   usedBy: true,
   taskId: true,
@@ -464,11 +464,11 @@ export type GithubCommit = typeof githubCommits.$inferSelect;
 export type InsertEmail = z.infer<typeof insertEmailSchema>;
 export type Email = typeof emails.$inferSelect;
 
-export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
-export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertSwcrmOutreachTemplate = z.infer<typeof insertSwcrmOutreachTemplateSchema>;
+export type SwcrmOutreachTemplate = typeof swcrmOutreachTemplates.$inferSelect;
 
-export type InsertEmailTemplateUsage = z.infer<typeof insertEmailTemplateUsageSchema>;
-export type EmailTemplateUsage = typeof emailTemplateUsage.$inferSelect;
+export type InsertSwcrmTemplateUsage = z.infer<typeof insertSwcrmTemplateUsageSchema>;
+export type SwcrmTemplateUsage = typeof swcrmTemplateUsage.$inferSelect;
 
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;

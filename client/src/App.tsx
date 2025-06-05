@@ -8,6 +8,7 @@ import Tasks from "@/pages/tasks";
 import Email from "@/pages/email";
 import Reports from "@/pages/reports";
 import Documentation from "@/pages/documentation";
+import AdminHub from "@/pages/admin-hub";
 import NotFound from "@/pages/not-found";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
@@ -26,6 +27,7 @@ function Router() {
             <Route path="/email" component={Email} />
             <Route path="/reports" component={Reports} />
             <Route path="/documentation" component={Documentation} />
+            <Route path="/admin" component={AdminHub} />
             <Route component={NotFound} />
           </Switch>
         </div>

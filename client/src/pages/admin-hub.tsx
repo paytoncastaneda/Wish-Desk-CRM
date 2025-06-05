@@ -241,9 +241,9 @@ export default function AdminHub() {
                         <div className="flex items-center space-x-2">
                           <div 
                             className="w-4 h-4 rounded-full border" 
-                            style={{ backgroundColor: category.color }} 
+                            style={{ backgroundColor: category.color || "#6b7280" }} 
                           />
-                          <span className="text-sm text-gray-500">{category.color}</span>
+                          <span className="text-sm text-gray-500">{category.color || "#6b7280"}</span>
                         </div>
                       </TableCell>
                       <TableCell>

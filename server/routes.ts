@@ -337,6 +337,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Hub API Routes - Task Categories
+  app.get("/api/admin/task-categories", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+      const categories = await db.select().from(taskCategories);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching task categories:", error);
+      res.status(500).json({ error: "Failed to fetch task categories" });
+    }
+  });
+
+  app.post("/api/admin/task-categories", authenticate, requireRole("admin"), auditLog("create", "task_category"), async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = insertTaskCategorySchema.parse({
+        ...req.body,
+        createdBy: req.user?.id
+      });
+      
+      const [category] = await db.insert(taskCategories).values(validatedData).returning();
+      res.json(category);
+    } catch (error) {
+      console.error("Error creating task category:", error);
+      res.status(500).json({ error: "Failed to create task category" });
+    }
+  });
+
+  app.put("/api/admin/task-categories/:id", authenticate, requireRole("admin"), auditLog("update", "task_category"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertTaskCategorySchema.partial().parse(req.body);
+      
+      const [category] = await db
+        .update(taskCategories)
+        .set({ ...validatedData, updatedAt: new Date() })
+        .where(eq(taskCategories.id, id))
+        .returning();
+      
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating task category:", error);
+      res.status(500).json({ error: "Failed to update task category" });
+    }
+  });
+
+  app.delete("/api/admin/task-categories/:id", authenticate, requireRole("admin"), auditLog("delete", "task_category"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(taskCategories).where(eq(taskCategories.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting task category:", error);
+      res.status(500).json({ error: "Failed to delete task category" });
+    }
+  });
+
+  // Admin Hub API Routes - User Management
+  app.get("/api/admin/users", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+      const allUsers = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt
+      }).from(users);
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/admin/users", authenticate, requireRole("admin"), auditLog("create", "user"), async (req, res) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      const [user] = await db.insert(users).values(validatedData).returning({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt
+      });
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id", authenticate, requireRole("admin"), auditLog("update", "user"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertUserSchema.partial().parse(req.body);
+      
+      const [user] = await db
+        .update(users)
+        .set({ ...validatedData, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+          isActive: users.isActive,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt
+        });
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  // Admin Hub API Routes - Role Permissions
+  app.get("/api/admin/role-permissions", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+      const permissions = await db.select().from(rolePermissions);
+      res.json(permissions);
+    } catch (error) {
+      console.error("Error fetching role permissions:", error);
+      res.status(500).json({ error: "Failed to fetch role permissions" });
+    }
+  });
+
+  app.put("/api/admin/role-permissions/:role/:resource", authenticate, requireRole("admin"), auditLog("update", "role_permission"), async (req, res) => {
+    try {
+      const { role, resource } = req.params;
+      const validatedData = insertRolePermissionSchema.parse({ ...req.body, role, resource });
+      
+      const [permission] = await db
+        .insert(rolePermissions)
+        .values(validatedData)
+        .onConflictDoUpdate({
+          target: [rolePermissions.role, rolePermissions.resource],
+          set: { 
+            actions: validatedData.actions,
+            conditions: validatedData.conditions,
+            updatedAt: new Date()
+          }
+        })
+        .returning();
+      
+      res.json(permission);
+    } catch (error) {
+      console.error("Error updating role permission:", error);
+      res.status(500).json({ error: "Failed to update role permission" });
+    }
+  });
+
+  // Admin Hub API Routes - Audit Logs
+  app.get("/api/admin/audit-logs", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+      const logs = await db
+        .select()
+        .from(auditLogs)
+        .orderBy(auditLogs.createdAt)
+        .limit(100);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ error: "Failed to fetch audit logs" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

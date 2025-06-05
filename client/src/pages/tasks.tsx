@@ -1,265 +1,1043 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Calendar, User } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Edit, Trash2, Calendar, User, Filter, Save, Download, Upload, Eye, Settings, ChevronDown, RefreshCw } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { ComprehensiveTaskForm } from "@/components/comprehensive-task-form";
-import type { Task } from "@shared/schema";
+import type { SwcrmTask, InsertSwcrmTask, TaskView, InsertTaskView, User as UserType, SwUser, SwCompany, Opportunity } from "@shared/schema";
+
+interface TaskFilters {
+  status?: string;
+  priority?: number;
+  category?: string;
+  taskOwner?: number;
+  assignToSidekick?: number;
+  linkedSwCompanyId?: number;
+  linkedSwCrmOpportunityId?: number;
+  dateRange?: { start?: Date; end?: Date };
+}
 
 export default function Tasks() {
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [activeView, setActiveView] = useState<TaskView | null>(null);
+  const [filters, setFilters] = useState<TaskFilters>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showViewForm, setShowViewForm] = useState(false);
+  const [showColumnConfig, setShowColumnConfig] = useState(false);
+  const [editingTask, setEditingTask] = useState<SwcrmTask | null>(null);
+  const [editingView, setEditingView] = useState<TaskView | null>(null);
   const { toast } = useToast();
 
-  const { data: tasks = [], isLoading } = useQuery<Task[]>({
-    queryKey: ["/api/tasks", { status: statusFilter, priority: priorityFilter }],
+  // Column configuration
+  const [visibleColumns, setVisibleColumns] = useState({
+    taskName: true,
+    category: true,
+    priority: true,
+    status: true,
+    taskOwner: true,
+    dateDue: true,
+    linkedSwCompanyId: true,
+    linkedSwCrmOpportunityId: true,
+    assignToSidekick: true,
+    createdAt: true,
+  });
+
+  // Fetch data
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<SwcrmTask[]>({
+    queryKey: ["/api/swcrm-tasks", filters],
+  });
+
+  const { data: taskViews = [] } = useQuery<TaskView[]>({
+    queryKey: ["/api/task-views"],
+  });
+
+  const { data: users = [] } = useQuery<UserType[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const { data: swUsers = [] } = useQuery<SwUser[]>({
+    queryKey: ["/api/sw-users"],
+  });
+
+  const { data: swCompanies = [] } = useQuery<SwCompany[]>({
+    queryKey: ["/api/sw-companies"],
+  });
+
+  const { data: opportunities = [] } = useQuery<Opportunity[]>({
+    queryKey: ["/api/opportunities"],
+  });
+
+  // Mutations
+  const createTaskMutation = useMutation({
+    mutationFn: (task: InsertSwcrmTask) => apiRequest("/api/swcrm-tasks", "POST", task),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/swcrm-tasks"] });
+      setShowTaskForm(false);
+      setEditingTask(null);
+      toast({ title: "Task created successfully" });
+    },
   });
 
   const updateTaskMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: number; updates: Partial<Task> }) => {
-      return apiRequest("PUT", `/api/tasks/${id}`, updates);
-    },
+    mutationFn: ({ id, ...updates }: { id: number } & Partial<InsertSwcrmTask>) =>
+      apiRequest(`/api/swcrm-tasks/${id}`, "PUT", updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      toast({
-        title: "Task Updated",
-        description: "Task has been successfully updated.",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/swcrm-tasks"] });
+      setShowTaskForm(false);
+      setEditingTask(null);
+      toast({ title: "Task updated successfully" });
     },
   });
 
   const deleteTaskMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest("DELETE", `/api/tasks/${id}`);
-    },
+    mutationFn: (id: number) => apiRequest(`/api/swcrm-tasks/${id}`, "DELETE"),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      toast({
-        title: "Task Deleted",
-        description: "Task has been successfully deleted.",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/swcrm-tasks"] });
+      toast({ title: "Task deleted successfully" });
     },
   });
 
-  const filteredTasks = tasks.filter((task: Task) => {
-    if (searchQuery && !task.taskName.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    return true;
+  const createViewMutation = useMutation({
+    mutationFn: (view: InsertTaskView) => apiRequest("/api/task-views", "POST", view),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/task-views"] });
+      setShowViewForm(false);
+      setEditingView(null);
+      toast({ title: "View saved successfully" });
+    },
   });
 
-  const handleToggleTask = (task: Task) => {
-    const newStatus = task.status === "completed" ? "todo" : "completed";
-    updateTaskMutation.mutate({ id: task.id, updates: { status: newStatus } });
+  const duplicateTaskMutation = useMutation({
+    mutationFn: (taskId: number) => apiRequest(`/api/swcrm-tasks/${taskId}/duplicate`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/swcrm-tasks"] });
+      toast({ title: "Recurring task created successfully" });
+    },
+  });
+
+  // Filter and search tasks
+  const filteredTasks = useMemo(() => {
+    let filtered = tasks;
+
+    // Apply active view filters
+    if (activeView?.filterConfig) {
+      const viewFilters = activeView.filterConfig as TaskFilters;
+      filtered = filtered.filter(task => {
+        if (viewFilters.status && task.status !== viewFilters.status) return false;
+        if (viewFilters.priority && task.priority !== viewFilters.priority) return false;
+        if (viewFilters.category && task.category !== viewFilters.category) return false;
+        if (viewFilters.taskOwner && task.taskOwner !== viewFilters.taskOwner) return false;
+        return true;
+      });
+    }
+
+    // Apply current filters
+    filtered = filtered.filter(task => {
+      if (filters.status && task.status !== filters.status) return false;
+      if (filters.priority && task.priority !== filters.priority) return false;
+      if (filters.category && task.category !== filters.category) return false;
+      if (filters.taskOwner && task.taskOwner !== filters.taskOwner) return false;
+      if (filters.assignToSidekick && task.assignToSidekick !== filters.assignToSidekick) return false;
+      if (filters.linkedSwCompanyId && task.linkedSwCompanyId !== filters.linkedSwCompanyId) return false;
+      if (filters.linkedSwCrmOpportunityId && task.linkedSwCrmOpportunityId !== filters.linkedSwCrmOpportunityId) return false;
+      return true;
+    });
+
+    // Apply search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(task =>
+        task.taskName.toLowerCase().includes(query) ||
+        task.taskDetails?.toLowerCase().includes(query) ||
+        task.category.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [tasks, filters, searchQuery, activeView]);
+
+  const handleCompleteTask = async (task: SwcrmTask) => {
+    await updateTaskMutation.mutateAsync({
+      id: task.taskId,
+      status: "Complete"
+    });
+
+    // If task is recurring, create next occurrence
+    if (task.isRecurring) {
+      await duplicateTaskMutation.mutateAsync(task.taskId);
+    }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const handleBulkExport = () => {
+    const csvContent = [
+      // Header
+      Object.keys(visibleColumns).filter(col => visibleColumns[col as keyof typeof visibleColumns]).join(','),
+      // Data
+      ...filteredTasks.map(task => 
+        Object.keys(visibleColumns)
+          .filter(col => visibleColumns[col as keyof typeof visibleColumns])
+          .map(col => {
+            const value = task[col as keyof SwcrmTask];
+            return typeof value === 'string' ? `"${value}"` : value || '';
+          })
+          .join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tasks-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const getPriorityColor = (priority: number) => {
     switch (priority) {
-      case "high":
-        return "bg-warning bg-opacity-10 text-warning";
-      case "medium":
-        return "bg-green-100 text-success";
-      case "low":
-        return "bg-gray-100 text-gray-600";
-      default:
-        return "bg-gray-100 text-gray-600";
+      case 1: return "text-green-600";
+      case 2: return "text-yellow-600";
+      case 3: return "text-red-600";
+      default: return "text-gray-600";
+    }
+  };
+
+  const getPriorityLabel = (priority: number) => {
+    switch (priority) {
+      case 1: return "Low";
+      case 2: return "Medium";
+      case 3: return "High";
+      default: return "Low";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
-        return "bg-success bg-opacity-10 text-success";
-      case "progress":
-        return "bg-blue-100 text-primary";
-      case "todo":
-        return "bg-gray-100 text-gray-600";
-      default:
-        return "bg-gray-100 text-gray-600";
+      case "Complete": return "text-green-600 bg-green-50";
+      case "Not Started": return "text-gray-600 bg-gray-50";
+      default: return "text-gray-600 bg-gray-50";
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-48 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-64"></div>
-          </div>
-        </div>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="animate-pulse space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-center space-x-4 py-3">
-                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                  <div className="flex-1">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6 bg-[#f9f9fb] min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-semibold text-gray-900">Task Management</h3>
-          <p className="text-sm text-gray-500">Organize and track your team's tasks</p>
+          <h1 className="text-3xl font-montserrat font-bold text-[#2d3333] mb-2">
+            Task Management
+          </h1>
+          <p className="text-[#737373] font-lato">
+            Comprehensive task tracking with advanced filtering, recurring tasks, and collaborative features
+          </p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              New Task
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New Task</DialogTitle>
-            </DialogHeader>
-            <ComprehensiveTaskForm onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-            }} />
-          </DialogContent>
-        </Dialog>
+        
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleBulkExport}
+            variant="outline"
+            className="border-[#55c5ce] text-[#277e88] hover:bg-[#f3fbfc]"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          
+          <Button
+            onClick={() => setShowViewForm(true)}
+            variant="outline"
+            className="border-[#55c5ce] text-[#277e88] hover:bg-[#f3fbfc]"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save View
+          </Button>
+          
+          <Button
+            onClick={() => setShowColumnConfig(true)}
+            variant="outline"
+            className="border-[#55c5ce] text-[#277e88] hover:bg-[#f3fbfc]"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Columns
+          </Button>
+          
+          <Button
+            onClick={() => setShowTaskForm(true)}
+            className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-montserrat font-semibold"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Task
+          </Button>
+        </div>
       </div>
+
+      {/* Task Views */}
+      <Card className="border-[#cccccc] shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-montserrat text-[#2d3333]">Saved Views</CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setActiveView(null);
+                setFilters({});
+              }}
+              className="text-[#737373] hover:text-[#2d3333]"
+            >
+              Clear View
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {taskViews.map((view) => (
+              <Button
+                key={view.id}
+                variant={activeView?.id === view.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveView(view)}
+                className={
+                  activeView?.id === view.id
+                    ? "bg-[#d2232a] text-white"
+                    : "border-[#cccccc] text-[#737373] hover:bg-[#f5f5f5]"
+                }
+              >
+                {view.isGlobal && <Eye className="w-3 h-3 mr-1" />}
+                {view.name}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-4">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="todo">To Do</SelectItem>
-                <SelectItem value="progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="All Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Input
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 min-w-64"
-            />
+      <Card className="border-[#cccccc] shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-montserrat text-[#2d3333] flex items-center">
+            <Filter className="w-5 h-5 mr-2 text-[#55c5ce]" />
+            Advanced Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div>
+              <Label className="text-[#2d3333] font-lato">Search</Label>
+              <Input
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="border-[#cccccc] focus:border-[#55c5ce]"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Status</Label>
+              <Select value={filters.status || ""} onValueChange={(value) => setFilters({...filters, status: value || undefined})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="Not Started">Not Started</SelectItem>
+                  <SelectItem value="Complete">Complete</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Priority</Label>
+              <Select value={filters.priority?.toString() || ""} onValueChange={(value) => setFilters({...filters, priority: value ? parseInt(value) : undefined})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="All priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All priorities</SelectItem>
+                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="2">Medium</SelectItem>
+                  <SelectItem value="3">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Category</Label>
+              <Select value={filters.category || ""} onValueChange={(value) => setFilters({...filters, category: value || undefined})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  <SelectItem value="CALL">Call</SelectItem>
+                  <SelectItem value="EMAIL">Email</SelectItem>
+                  <SelectItem value="MEETING">Meeting</SelectItem>
+                  <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
+                  <SelectItem value="PROPOSAL">Proposal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Assigned To</Label>
+              <Select value={filters.taskOwner?.toString() || ""} onValueChange={(value) => setFilters({...filters, taskOwner: value ? parseInt(value) : undefined})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="All users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All users</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Company</Label>
+              <Select value={filters.linkedSwCompanyId?.toString() || ""} onValueChange={(value) => setFilters({...filters, linkedSwCompanyId: value ? parseInt(value) : undefined})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="All companies" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All companies</SelectItem>
+                  {swCompanies.map((company) => (
+                    <SelectItem key={company.id} value={company.id.toString()}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tasks List */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-medium text-gray-900">Active Tasks</h4>
-            <span className="text-sm text-gray-500">{filteredTasks.length} tasks</span>
-          </div>
-          
-          <div className="space-y-4">
-            {filteredTasks.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No tasks found matching your criteria.</p>
-              </div>
-            ) : (
-              filteredTasks.map((task: Task) => (
-                <div
-                  key={task.id}
-                  className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-colors"
+      {/* Tasks Table */}
+      <Card className="border-[#cccccc] shadow-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-montserrat text-[#2d3333]">
+              Tasks ({filteredTasks.length})
+            </CardTitle>
+            {selectedTasks.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-[#737373]">
+                  {selectedTasks.length} selected
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    selectedTasks.forEach(id => deleteTaskMutation.mutate(id));
+                    setSelectedTasks([]);
+                  }}
+                  className="border-[#d2232a] text-[#d2232a] hover:bg-[#fef6f6]"
                 >
-                  <Checkbox
-                    checked={task.status === "completed"}
-                    onCheckedChange={() => handleToggleTask(task)}
-                    className="mt-1"
-                  />
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <h5 className={`text-sm font-medium truncate ${
-                        task.status === "completed" ? "line-through text-gray-500" : "text-gray-900"
-                      }`}>
-                        {task.taskName}
-                      </h5>
-                      <Badge className={getPriorityColor(task.priority || 1)}>
-                        Priority {task.priority || 1}
-                      </Badge>
-                    </div>
-                    
-                    {task.taskDetails && (
-                      <p className="text-sm text-gray-500 mb-3">{task.taskDetails}</p>
-                    )}
-                    
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      {task.dateDue && (
-                        <span className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          Due: {format(new Date(task.dateDue), "MMM dd, yyyy")}
-                        </span>
-                      )}
-                      {task.taskOwner && (
-                        <span className="flex items-center">
-                          <User className="w-3 h-3 mr-1" />
-                          Owner: {task.taskOwner}
-                        </span>
-                      )}
-                      <Badge className={getStatusColor(task.status)}>
-                        {task.status === "progress" ? "In Progress" : 
-                         task.status === "todo" ? "To Do" : "Completed"}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteTaskMutation.mutate(task.id)}
-                      disabled={deleteTaskMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Delete Selected
+                </Button>
+              </div>
             )}
           </div>
+        </CardHeader>
+        <CardContent>
+          {tasksLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-[#55c5ce]" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#ebebeb]">
+                    <th className="text-left p-3">
+                      <Checkbox
+                        checked={selectedTasks.length === filteredTasks.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedTasks(filteredTasks.map(t => t.taskId));
+                          } else {
+                            setSelectedTasks([]);
+                          }
+                        }}
+                      />
+                    </th>
+                    {visibleColumns.taskName && <th className="text-left p-3 font-montserrat text-[#2d3333]">Task Name</th>}
+                    {visibleColumns.category && <th className="text-left p-3 font-montserrat text-[#2d3333]">Category</th>}
+                    {visibleColumns.priority && <th className="text-left p-3 font-montserrat text-[#2d3333]">Priority</th>}
+                    {visibleColumns.status && <th className="text-left p-3 font-montserrat text-[#2d3333]">Status</th>}
+                    {visibleColumns.taskOwner && <th className="text-left p-3 font-montserrat text-[#2d3333]">Assigned To</th>}
+                    {visibleColumns.dateDue && <th className="text-left p-3 font-montserrat text-[#2d3333]">Due Date</th>}
+                    {visibleColumns.linkedSwCompanyId && <th className="text-left p-3 font-montserrat text-[#2d3333]">Company</th>}
+                    {visibleColumns.linkedSwCrmOpportunityId && <th className="text-left p-3 font-montserrat text-[#2d3333]">Opportunity</th>}
+                    <th className="text-left p-3 font-montserrat text-[#2d3333]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTasks.map((task) => (
+                    <tr key={task.taskId} className="border-b border-[#f5f5f5] hover:bg-[#f9f9fb]">
+                      <td className="p-3">
+                        <Checkbox
+                          checked={selectedTasks.includes(task.taskId)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedTasks([...selectedTasks, task.taskId]);
+                            } else {
+                              setSelectedTasks(selectedTasks.filter(id => id !== task.taskId));
+                            }
+                          }}
+                        />
+                      </td>
+                      {visibleColumns.taskName && (
+                        <td className="p-3">
+                          <div className="font-lato text-[#2d3333] font-medium">{task.taskName}</div>
+                          {task.taskDetails && (
+                            <div className="text-sm text-[#737373] mt-1 truncate max-w-xs">
+                              {task.taskDetails}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.category && (
+                        <td className="p-3">
+                          <Badge variant="outline" className="border-[#55c5ce] text-[#277e88]">
+                            {task.category}
+                          </Badge>
+                        </td>
+                      )}
+                      {visibleColumns.priority && (
+                        <td className="p-3">
+                          <span className={`font-lato font-medium ${getPriorityColor(task.priority)}`}>
+                            {getPriorityLabel(task.priority)}
+                          </span>
+                        </td>
+                      )}
+                      {visibleColumns.status && (
+                        <td className="p-3">
+                          <Badge className={getStatusColor(task.status)}>
+                            {task.status}
+                          </Badge>
+                        </td>
+                      )}
+                      {visibleColumns.taskOwner && (
+                        <td className="p-3">
+                          <div className="font-lato text-[#2d3333]">
+                            {users.find(u => u.id === task.taskOwner)?.firstName} {users.find(u => u.id === task.taskOwner)?.lastName}
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.dateDue && (
+                        <td className="p-3">
+                          {task.dateDue && (
+                            <div className="font-lato text-[#2d3333]">
+                              {format(new Date(task.dateDue), 'MMM dd, yyyy')}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.linkedSwCompanyId && (
+                        <td className="p-3">
+                          {task.linkedSwCompanyId && (
+                            <div className="font-lato text-[#2d3333]">
+                              {swCompanies.find(c => c.id === task.linkedSwCompanyId)?.name}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.linkedSwCrmOpportunityId && (
+                        <td className="p-3">
+                          {task.linkedSwCrmOpportunityId && (
+                            <div className="font-lato text-[#2d3333]">
+                              {opportunities.find(o => o.id === task.linkedSwCrmOpportunityId)?.name}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      <td className="p-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <ChevronDown className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => {
+                              setEditingTask(task);
+                              setShowTaskForm(true);
+                            }}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            {task.status === "Not Started" && (
+                              <DropdownMenuItem onClick={() => handleCompleteTask(task)}>
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Mark Complete
+                              </DropdownMenuItem>
+                            )}
+                            {task.isRecurring && (
+                              <DropdownMenuItem onClick={() => duplicateTaskMutation.mutate(task.taskId)}>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Create Next
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem 
+                              onClick={() => deleteTaskMutation.mutate(task.taskId)}
+                              className="text-[#d2232a]"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {filteredTasks.length === 0 && (
+                <div className="text-center py-8 text-[#737373] font-lato">
+                  No tasks found matching your criteria
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Task Form Dialog */}
+      <TaskFormDialog
+        open={showTaskForm}
+        onOpenChange={setShowTaskForm}
+        task={editingTask}
+        users={users}
+        swUsers={swUsers}
+        swCompanies={swCompanies}
+        opportunities={opportunities}
+        onSubmit={(data) => {
+          if (editingTask) {
+            updateTaskMutation.mutate({ id: editingTask.taskId, ...data });
+          } else {
+            createTaskMutation.mutate(data);
+          }
+        }}
+      />
+
+      {/* View Form Dialog */}
+      <ViewFormDialog
+        open={showViewForm}
+        onOpenChange={setShowViewForm}
+        view={editingView}
+        currentFilters={filters}
+        currentColumns={visibleColumns}
+        onSubmit={(data) => createViewMutation.mutate(data)}
+      />
+
+      {/* Column Configuration Dialog */}
+      <ColumnConfigDialog
+        open={showColumnConfig}
+        onOpenChange={setShowColumnConfig}
+        visibleColumns={visibleColumns}
+        onColumnsChange={setVisibleColumns}
+      />
     </div>
+  );
+}
+
+// Task Form Dialog Component
+interface TaskFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  task: SwcrmTask | null;
+  users: UserType[];
+  swUsers: SwUser[];
+  swCompanies: SwCompany[];
+  opportunities: Opportunity[];
+  onSubmit: (data: InsertSwcrmTask) => void;
+}
+
+function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies, opportunities, onSubmit }: TaskFormDialogProps) {
+  const [formData, setFormData] = useState<InsertSwcrmTask>({
+    taskOwner: 1,
+    taskCreatedBy: 1,
+    taskName: "",
+    category: "CALL",
+    taskDetails: "",
+    dateDue: null,
+    expirationDate: null,
+    priority: 1,
+    status: "Not Started",
+    linkedSwUserId: null,
+    linkedSwCompanyId: null,
+    linkedSwCrmProposalId: null,
+    linkedSwCrmOpportunityId: null,
+    linkedSwCrmNotesId: null,
+    linkedSwCrmPromotionsId: null,
+    assignToSidekick: null,
+    isRecurring: false,
+    recurrencePattern: null,
+    recurrenceInterval: 1,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-montserrat text-[#2d3333]">
+            {task ? "Edit Task" : "Create New Task"}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[#2d3333] font-lato">Task Name *</Label>
+              <Input
+                value={formData.taskName}
+                onChange={(e) => setFormData({...formData, taskName: e.target.value})}
+                className="border-[#cccccc] focus:border-[#55c5ce]"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Category *</Label>
+              <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CALL">Call</SelectItem>
+                  <SelectItem value="EMAIL">Email</SelectItem>
+                  <SelectItem value="MEETING">Meeting</SelectItem>
+                  <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
+                  <SelectItem value="PROPOSAL">Proposal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Priority</Label>
+              <Select value={formData.priority.toString()} onValueChange={(value) => setFormData({...formData, priority: parseInt(value)})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="2">Medium</SelectItem>
+                  <SelectItem value="3">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Assigned To *</Label>
+              <Select value={formData.taskOwner.toString()} onValueChange={(value) => setFormData({...formData, taskOwner: parseInt(value)})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Due Date</Label>
+              <Input
+                type="datetime-local"
+                value={formData.dateDue ? new Date(formData.dateDue).toISOString().slice(0, 16) : ""}
+                onChange={(e) => setFormData({...formData, dateDue: e.target.value ? new Date(e.target.value) : null})}
+                className="border-[#cccccc] focus:border-[#55c5ce]"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Expiration Date (MOD Use)</Label>
+              <Input
+                type="datetime-local"
+                value={formData.expirationDate ? new Date(formData.expirationDate).toISOString().slice(0, 16) : ""}
+                onChange={(e) => setFormData({...formData, expirationDate: e.target.value ? new Date(e.target.value) : null})}
+                className="border-[#cccccc] focus:border-[#55c5ce]"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label className="text-[#2d3333] font-lato">Task Details</Label>
+            <Textarea
+              value={formData.taskDetails || ""}
+              onChange={(e) => setFormData({...formData, taskDetails: e.target.value})}
+              className="border-[#cccccc] focus:border-[#55c5ce]"
+              rows={3}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[#2d3333] font-lato">Linked Company</Label>
+              <Select value={formData.linkedSwCompanyId?.toString() || ""} onValueChange={(value) => setFormData({...formData, linkedSwCompanyId: value ? parseInt(value) : null})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="Select company" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {swCompanies.map((company) => (
+                    <SelectItem key={company.id} value={company.id.toString()}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-[#2d3333] font-lato">Linked Opportunity</Label>
+              <Select value={formData.linkedSwCrmOpportunityId?.toString() || ""} onValueChange={(value) => setFormData({...formData, linkedSwCrmOpportunityId: value ? parseInt(value) : null})}>
+                <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                  <SelectValue placeholder="Select opportunity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {opportunities.map((opportunity) => (
+                    <SelectItem key={opportunity.id} value={opportunity.id.toString()}>
+                      {opportunity.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="recurring"
+                checked={formData.isRecurring}
+                onCheckedChange={(checked) => setFormData({...formData, isRecurring: !!checked})}
+              />
+              <Label htmlFor="recurring" className="text-[#2d3333] font-lato">Recurring Task</Label>
+            </div>
+            
+            {formData.isRecurring && (
+              <div className="grid grid-cols-2 gap-4 ml-6">
+                <div>
+                  <Label className="text-[#2d3333] font-lato">Pattern</Label>
+                  <Select value={formData.recurrencePattern || ""} onValueChange={(value) => setFormData({...formData, recurrencePattern: value})}>
+                    <SelectTrigger className="border-[#cccccc] focus:border-[#55c5ce]">
+                      <SelectValue placeholder="Select pattern" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label className="text-[#2d3333] font-lato">Interval</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={formData.recurrenceInterval}
+                    onChange={(e) => setFormData({...formData, recurrenceInterval: parseInt(e.target.value) || 1})}
+                    className="border-[#cccccc] focus:border-[#55c5ce]"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="border-[#cccccc] text-[#737373]"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-montserrat"
+            >
+              {task ? "Update Task" : "Create Task"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// View Form Dialog Component
+interface ViewFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  view: TaskView | null;
+  currentFilters: TaskFilters;
+  currentColumns: any;
+  onSubmit: (data: InsertTaskView) => void;
+}
+
+function ViewFormDialog({ open, onOpenChange, view, currentFilters, currentColumns, onSubmit }: ViewFormDialogProps) {
+  const [formData, setFormData] = useState<InsertTaskView>({
+    name: "",
+    description: "",
+    isGlobal: false,
+    createdBy: 1,
+    filterConfig: currentFilters,
+    columnConfig: currentColumns,
+    isActive: true,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-montserrat text-[#2d3333]">Save Current View</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label className="text-[#2d3333] font-lato">View Name *</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="border-[#cccccc] focus:border-[#55c5ce]"
+              placeholder="e.g., High Priority Tasks"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label className="text-[#2d3333] font-lato">Description</Label>
+            <Textarea
+              value={formData.description || ""}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="border-[#cccccc] focus:border-[#55c5ce]"
+              placeholder="Optional description"
+              rows={2}
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="global"
+              checked={formData.isGlobal}
+              onCheckedChange={(checked) => setFormData({...formData, isGlobal: !!checked})}
+            />
+            <Label htmlFor="global" className="text-[#2d3333] font-lato">Make this a global template (visible to all users)</Label>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="border-[#cccccc] text-[#737373]"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-montserrat"
+            >
+              Save View
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Column Configuration Dialog Component
+interface ColumnConfigDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  visibleColumns: any;
+  onColumnsChange: (columns: any) => void;
+}
+
+function ColumnConfigDialog({ open, onOpenChange, visibleColumns, onColumnsChange }: ColumnConfigDialogProps) {
+  const columns = [
+    { key: 'taskName', label: 'Task Name' },
+    { key: 'category', label: 'Category' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'status', label: 'Status' },
+    { key: 'taskOwner', label: 'Assigned To' },
+    { key: 'dateDue', label: 'Due Date' },
+    { key: 'linkedSwCompanyId', label: 'Company' },
+    { key: 'linkedSwCrmOpportunityId', label: 'Opportunity' },
+    { key: 'assignToSidekick', label: 'Sidekick' },
+    { key: 'createdAt', label: 'Created' },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-montserrat text-[#2d3333]">Configure Columns</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-3">
+          {columns.map((column) => (
+            <div key={column.key} className="flex items-center space-x-2">
+              <Checkbox
+                id={column.key}
+                checked={visibleColumns[column.key]}
+                onCheckedChange={(checked) => 
+                  onColumnsChange({
+                    ...visibleColumns,
+                    [column.key]: !!checked
+                  })
+                }
+              />
+              <Label htmlFor={column.key} className="text-[#2d3333] font-lato">
+                {column.label}
+              </Label>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex justify-end gap-3 pt-4">
+          <Button
+            onClick={() => onOpenChange(false)}
+            className="bg-[#d2232a] hover:bg-[#a61c25] text-white font-montserrat"
+          >
+            Done
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

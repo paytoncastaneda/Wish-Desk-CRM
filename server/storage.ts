@@ -1,4 +1,4 @@
-import { users, tasks, emails, reports, documentation, swcrmOutreachTemplates, opportunities, type User, type Task, type Email, type Report, type Documentation, type InsertUser, type InsertTask, type InsertEmail, type InsertReport, type InsertDocumentation, type SwcrmOutreachTemplate, type InsertSwcrmOutreachTemplate, type Opportunity, type InsertOpportunity } from "@shared/schema";
+import { users, tasks, emails, reports, documentation, swcrmOutreachTemplates, opportunities, swcrmTasks, taskViews, swUsers, swCompany, type User, type Task, type Email, type Report, type Documentation, type InsertUser, type InsertTask, type InsertEmail, type InsertReport, type InsertDocumentation, type SwcrmOutreachTemplate, type InsertSwcrmOutreachTemplate, type Opportunity, type InsertOpportunity, type SwcrmTask, type InsertSwcrmTask, type TaskView, type InsertTaskView, type SwUser, type SwCompany } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, inArray } from "drizzle-orm";
 
@@ -8,7 +8,29 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  // Tasks
+  // SWCRM Tasks (New comprehensive system)
+  getAllSwcrmTasks(filters?: any): Promise<SwcrmTask[]>;
+  getSwcrmTask(id: number): Promise<SwcrmTask | undefined>;
+  createSwcrmTask(task: InsertSwcrmTask): Promise<SwcrmTask>;
+  updateSwcrmTask(id: number, updates: Partial<InsertSwcrmTask>): Promise<SwcrmTask | undefined>;
+  deleteSwcrmTask(id: number): Promise<boolean>;
+  getSwcrmTasksByFilters(filters: any): Promise<SwcrmTask[]>;
+  duplicateTaskForRecurrence(taskId: number): Promise<SwcrmTask | undefined>;
+
+  // Task Views
+  getAllTaskViews(userId: number): Promise<TaskView[]>;
+  getTaskView(id: number): Promise<TaskView | undefined>;
+  createTaskView(view: InsertTaskView): Promise<TaskView>;
+  updateTaskView(id: number, updates: Partial<InsertTaskView>): Promise<TaskView | undefined>;
+  deleteTaskView(id: number): Promise<boolean>;
+
+  // Sugarwish Users and Companies
+  getAllSwUsers(): Promise<SwUser[]>;
+  getSwUser(id: number): Promise<SwUser | undefined>;
+  getAllSwCompanies(): Promise<SwCompany[]>;
+  getSwCompany(id: number): Promise<SwCompany | undefined>;
+
+  // Tasks (Legacy - backward compatibility)
   getAllTasks(): Promise<Task[]>;
   getTask(id: number): Promise<Task | undefined>;
   createTask(task: InsertTask): Promise<Task>;
@@ -86,7 +108,150 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  // Task operations
+  // SWCRM Task operations (New comprehensive system)
+  async getAllSwcrmTasks(filters?: any): Promise<SwcrmTask[]> {
+    let query = db.select().from(swcrmTasks);
+    
+    if (filters?.status) {
+      query = query.where(eq(swcrmTasks.status, filters.status));
+    }
+    if (filters?.priority) {
+      query = query.where(eq(swcrmTasks.priority, filters.priority));
+    }
+    if (filters?.taskOwner) {
+      query = query.where(eq(swcrmTasks.taskOwner, filters.taskOwner));
+    }
+    if (filters?.category) {
+      query = query.where(eq(swcrmTasks.category, filters.category));
+    }
+    
+    return await query.orderBy(desc(swcrmTasks.createdAt));
+  }
+
+  async getSwcrmTask(id: number): Promise<SwcrmTask | undefined> {
+    const [task] = await db.select().from(swcrmTasks).where(eq(swcrmTasks.taskId, id));
+    return task || undefined;
+  }
+
+  async createSwcrmTask(insertTask: InsertSwcrmTask): Promise<SwcrmTask> {
+    const [task] = await db.insert(swcrmTasks).values(insertTask).returning();
+    return task;
+  }
+
+  async updateSwcrmTask(id: number, updates: Partial<InsertSwcrmTask>): Promise<SwcrmTask | undefined> {
+    const [task] = await db.update(swcrmTasks)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(swcrmTasks.taskId, id))
+      .returning();
+    return task || undefined;
+  }
+
+  async deleteSwcrmTask(id: number): Promise<boolean> {
+    const result = await db.delete(swcrmTasks).where(eq(swcrmTasks.taskId, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async getSwcrmTasksByFilters(filters: any): Promise<SwcrmTask[]> {
+    return this.getAllSwcrmTasks(filters);
+  }
+
+  async duplicateTaskForRecurrence(taskId: number): Promise<SwcrmTask | undefined> {
+    const originalTask = await this.getSwcrmTask(taskId);
+    if (!originalTask || !originalTask.isRecurring) return undefined;
+
+    // Calculate next due date based on recurrence pattern
+    let nextDueDate = originalTask.dateDue;
+    if (nextDueDate && originalTask.recurrencePattern && originalTask.recurrenceInterval) {
+      const date = new Date(nextDueDate);
+      switch (originalTask.recurrencePattern) {
+        case 'daily':
+          date.setDate(date.getDate() + originalTask.recurrenceInterval);
+          break;
+        case 'weekly':
+          date.setDate(date.getDate() + (originalTask.recurrenceInterval * 7));
+          break;
+        case 'monthly':
+          date.setMonth(date.getMonth() + originalTask.recurrenceInterval);
+          break;
+      }
+      nextDueDate = date;
+    }
+
+    const newTask: InsertSwcrmTask = {
+      taskOwner: originalTask.taskOwner,
+      taskCreatedBy: originalTask.taskCreatedBy,
+      taskName: originalTask.taskName,
+      category: originalTask.category,
+      taskDetails: originalTask.taskDetails,
+      dateDue: nextDueDate,
+      expirationDate: originalTask.expirationDate,
+      priority: originalTask.priority,
+      status: 'Not Started',
+      linkedSwUserId: originalTask.linkedSwUserId,
+      linkedSwCompanyId: originalTask.linkedSwCompanyId,
+      linkedSwCrmProposalId: originalTask.linkedSwCrmProposalId,
+      linkedSwCrmOpportunityId: originalTask.linkedSwCrmOpportunityId,
+      linkedSwCrmNotesId: originalTask.linkedSwCrmNotesId,
+      linkedSwCrmPromotionsId: originalTask.linkedSwCrmPromotionsId,
+      assignToSidekick: originalTask.assignToSidekick,
+      isRecurring: originalTask.isRecurring,
+      recurrencePattern: originalTask.recurrencePattern,
+      recurrenceInterval: originalTask.recurrenceInterval,
+    };
+
+    return await this.createSwcrmTask(newTask);
+  }
+
+  // Task Views operations
+  async getAllTaskViews(userId: number): Promise<TaskView[]> {
+    return await db.select().from(taskViews)
+      .where(or(eq(taskViews.createdBy, userId), eq(taskViews.isGlobal, true)))
+      .orderBy(desc(taskViews.createdAt));
+  }
+
+  async getTaskView(id: number): Promise<TaskView | undefined> {
+    const [view] = await db.select().from(taskViews).where(eq(taskViews.id, id));
+    return view || undefined;
+  }
+
+  async createTaskView(insertView: InsertTaskView): Promise<TaskView> {
+    const [view] = await db.insert(taskViews).values(insertView).returning();
+    return view;
+  }
+
+  async updateTaskView(id: number, updates: Partial<InsertTaskView>): Promise<TaskView | undefined> {
+    const [view] = await db.update(taskViews)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(taskViews.id, id))
+      .returning();
+    return view || undefined;
+  }
+
+  async deleteTaskView(id: number): Promise<boolean> {
+    const result = await db.delete(taskViews).where(eq(taskViews.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // Sugarwish Users and Companies
+  async getAllSwUsers(): Promise<SwUser[]> {
+    return await db.select().from(swUsers).orderBy(desc(swUsers.createdAt));
+  }
+
+  async getSwUser(id: number): Promise<SwUser | undefined> {
+    const [user] = await db.select().from(swUsers).where(eq(swUsers.id, id));
+    return user || undefined;
+  }
+
+  async getAllSwCompanies(): Promise<SwCompany[]> {
+    return await db.select().from(swCompany).orderBy(desc(swCompany.createdAt));
+  }
+
+  async getSwCompany(id: number): Promise<SwCompany | undefined> {
+    const [company] = await db.select().from(swCompany).where(eq(swCompany.id, id));
+    return company || undefined;
+  }
+
+  // Task operations (Legacy - backward compatibility)
   async getAllTasks(): Promise<Task[]> {
     return await db.select().from(tasks).orderBy(desc(tasks.createdAt));
   }

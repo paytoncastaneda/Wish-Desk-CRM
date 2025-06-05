@@ -1,8 +1,108 @@
 @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@400;700;900&display=swap');
 
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Montserrat:wght@400;600;700;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Sugarwish Branding Colors */
+:root {
+  /* Primary Colors */
+  --darkest-wish: #721319;
+  --dark-wish: #a61c25;
+  --wish: #d2232a;
+  --medium-wish: #e87373;
+  --light-wish: #f6cbcb;
+  --lightest-wish: #fef6f6;
+  
+  /* Secondary Colors */
+  --darkest-sugar: #1b575e;
+  --dark-sugar: #277e88;
+  --sugar: #55c5ce;
+  --medium-sugar: #a4e0e5;
+  --light-sugar: #ccedf0;
+  --lightest-sugar: #f3fbfc;
+  
+  /* Neutrals */
+  --darkest-gray: #737373;
+  --dark-gray: #969696;
+  --gray: #cccccc;
+  --medium-gray: #ebebeb;
+  --light-gray: #f5f5f5;
+  --lightest-gray: #f9f9fb;
+  --dark: #2d3333;
+  --white: #ffffff;
+  
+  /* Status Colors */
+  --green-success: #66cc99;
+  --green-text: #528232;
+  --yellow-warning: #ffd580;
+  
+  /* Design System Colors */
+  --background: 249 249 251; /* lightest-gray */
+  --foreground: 45 51 51; /* dark */
+  --card: 255 255 255; /* white */
+  --card-foreground: 45 51 51;
+  --popover: 255 255 255;
+  --popover-foreground: 45 51 51;
+  --primary: 210 35 42; /* wish */
+  --primary-foreground: 255 255 255;
+  --secondary: 85 197 206; /* sugar */
+  --secondary-foreground: 27 87 94; /* darkest-sugar */
+  --muted: 245 245 245; /* light-gray */
+  --muted-foreground: 115 115 115; /* darkest-gray */
+  --accent: 243 251 252; /* lightest-sugar */
+  --accent-foreground: 45 51 51;
+  --destructive: 166 28 37; /* dark-wish */
+  --destructive-foreground: 255 255 255;
+  --border: 204 204 204; /* gray */
+  --input: 235 235 235; /* medium-gray */
+  --ring: 210 35 42; /* wish */
+  --radius: 0.5rem;
+}
+
+/* Typography */
+body {
+  font-family: 'Lato', sans-serif;
+  font-weight: 400;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+}
+
+/* Brand-specific classes */
+.font-montserrat {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.font-lato {
+  font-family: 'Lato', sans-serif;
+}
+
+/* Priority colors */
+.priority-1 {
+  color: var(--green-success);
+}
+
+.priority-2 {
+  color: var(--yellow-warning);
+}
+
+.priority-3 {
+  color: var(--wish);
+}
+
+/* Status colors */
+.status-not-started {
+  color: var(--dark-gray);
+}
+
+.status-complete {
+  color: var(--green-success);
+}
 
 :root {
   /* Sugarwish Primary Colors */

@@ -47,7 +47,14 @@ const rolePermissionSchema = z.object({
   }),
 });
 
+const emailTemplateCategorySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  isActive: z.boolean().default(true),
+});
+
 type TaskCategoryFormData = z.infer<typeof taskCategorySchema>;
+type EmailTemplateCategoryFormData = z.infer<typeof emailTemplateCategorySchema>;
 type UserManagementFormData = z.infer<typeof userManagementSchema>;
 type RolePermissionFormData = z.infer<typeof rolePermissionSchema>;
 
@@ -70,6 +77,10 @@ export default function AdminHub() {
 
   const { data: auditLogs = [] } = useQuery({
     queryKey: ["/api/admin/audit-logs"],
+  });
+
+  const { data: emailTemplateCategories = [] } = useQuery({
+    queryKey: ["/api/admin/email-template-categories"],
   });
 
   // Mutations
@@ -141,8 +152,9 @@ export default function AdminHub() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="categories">Categories</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="categories">Task Categories</TabsTrigger>
+          <TabsTrigger value="email-categories">Email Categories</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="permissions">Role Permissions</TabsTrigger>
           <TabsTrigger value="audit">Audit Logs</TabsTrigger>

@@ -363,14 +363,77 @@ export default function EmailCenter() {
                       <FormItem>
                         <FormLabel>HTML Content</FormLabel>
                         <div className="flex space-x-2 mb-2">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => field.onChange(sampleHTMLTemplate)}
-                          >
-                            Load Sample Template
-                          </Button>
+                          <Dialog open={isAIDialogOpen} onOpenChange={setIsAIDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button type="button" variant="outline" size="sm">
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                AI Generate Template
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>AI Template Generator</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-sm font-medium">Describe your email template</label>
+                                  <Textarea
+                                    placeholder="Example: A welcome email for new corporate clients thanking them for signing up and explaining our gift services..."
+                                    value={aiDescription}
+                                    onChange={(e) => setAiDescription(e.target.value)}
+                                    className="mt-2"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-sm font-medium">Tone</label>
+                                    <Select value={aiTone} onValueChange={setAiTone}>
+                                      <SelectTrigger className="mt-2">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="professional">Professional</SelectItem>
+                                        <SelectItem value="friendly">Friendly</SelectItem>
+                                        <SelectItem value="casual">Casual</SelectItem>
+                                        <SelectItem value="formal">Formal</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium">Purpose</label>
+                                    <Select value={aiPurpose} onValueChange={setAiPurpose}>
+                                      <SelectTrigger className="mt-2">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="welcome">Welcome</SelectItem>
+                                        <SelectItem value="follow-up">Follow-up</SelectItem>
+                                        <SelectItem value="proposal">Proposal</SelectItem>
+                                        <SelectItem value="general">General Outreach</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    onClick={() => generateTemplateMutation.mutate({
+                                      description: aiDescription,
+                                      tone: aiTone,
+                                      purpose: aiPurpose
+                                    })}
+                                    disabled={!aiDescription || generateTemplateMutation.isPending}
+                                    className="flex-1"
+                                  >
+                                    {generateTemplateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                    Generate Template
+                                  </Button>
+                                  <Button type="button" variant="outline" onClick={() => setIsAIDialogOpen(false)}>
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                           <Button type="button" variant="outline" size="sm" onClick={() => setPreviewMode(!previewMode)}>
                             <Eye className="w-4 h-4 mr-2" />
                             {previewMode ? "Edit" : "Preview"}

@@ -936,7 +936,19 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Convert "none" values to null for submission
+    const submissionData = {
+      ...formData,
+      linkedSwCompanyId: formData.linkedSwCompanyId === "none" ? null : 
+        formData.linkedSwCompanyId ? parseInt(formData.linkedSwCompanyId as string) : null,
+      linkedSwUserId: formData.linkedSwUserId === "none" ? null : 
+        formData.linkedSwUserId ? parseInt(formData.linkedSwUserId as string) : null,
+      linkedSwCrmOpportunityId: formData.linkedSwCrmOpportunityId === "none" ? null : 
+        formData.linkedSwCrmOpportunityId ? parseInt(formData.linkedSwCrmOpportunityId as string) : null,
+    };
+    
+    onSubmit(submissionData);
   };
 
   return (
@@ -946,6 +958,9 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
           <DialogTitle className="font-montserrat text-[#2d3333]">
             {task ? "Edit Task" : "Create New Task"}
           </DialogTitle>
+          <DialogDescription className="text-[#2d3333] font-lato">
+            {task ? "Update task details and save changes." : "Fill in the task information and click save to create a new task."}
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -1039,7 +1054,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
                   <SelectValue placeholder="Search and select company..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Company</SelectItem>
+                  <SelectItem value="none">No Company</SelectItem>
                   {swCompanies.map((company) => (
                     <SelectItem key={company.id} value={company.id.toString()}>
                       {company.name || 'Unknown Company'}
@@ -1059,7 +1074,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
                   <SelectValue placeholder="Search and select contact..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Contact</SelectItem>
+                  <SelectItem value="none">No Contact</SelectItem>
                   {swUsers.map((swUser) => (
                     <SelectItem key={swUser.id} value={swUser.id.toString()}>
                       {swUser.firstName} {swUser.lastName} - {swUser.email}
@@ -1079,7 +1094,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
                   <SelectValue placeholder="Select opportunity..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Opportunity</SelectItem>
+                  <SelectItem value="none">No Opportunity</SelectItem>
                   {opportunities.map((opp) => (
                     <SelectItem key={opp.id} value={opp.id.toString()}>
                       {opp.name}

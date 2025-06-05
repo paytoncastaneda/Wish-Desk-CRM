@@ -145,6 +145,7 @@ export default function Dashboard() {
           icon={Mail}
           change="+15%"
           color="bg-purple-500"
+          onClick={() => setShowDrillDown(showDrillDown === 'emailsSent' ? null : 'emailsSent')}
         />
         <StatCard
           title="Task Completion Rate"

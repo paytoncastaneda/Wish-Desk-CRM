@@ -867,14 +867,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // Get tasks for the current user that are "Not Started"
-      const userTasks = await db
-        .select()
-        .from(tasks)
-        .where(and(
-          eq(tasks.taskOwner, userId),
-          eq(tasks.status, "Not Started")
-        ));
+      // Get tasks for the current user that are "Not Started"  
+      const userTasks = await storage.getAllTasks();
+      const filteredTasks = userTasks.filter(task => 
+        task.taskOwner === userId && task.status === "Not Started"
+      );
 
       const breakdown = {
         overdue: 0,
@@ -883,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dueFuture: 0
       };
 
-      userTasks.forEach(task => {
+      filteredTasks.forEach(task => {
         if (!task.dateDue) {
           breakdown.dueFuture++;
           return;
@@ -907,6 +904,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching task breakdown:", error);
       res.status(500).json({ error: "Failed to fetch task breakdown" });
+    }
+  });
+
+  // Email breakdown endpoint for Emails Sent drill-down
+  app.get("/api/emails/breakdown", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // Get all emails sent by the current user
+      const userEmails = await storage.getAllEmails();
+      
+      const breakdown = {
+        sentYesterday: 0,
+        sentToday: 0,
+        recentEmails: []
+      };
+
+      // Count emails by date and get recent emails
+      const recentEmails = [];
+      
+      userEmails.forEach(email => {
+        if (!email.sentAt) return;
+        
+        const sentDate = new Date(email.sentAt);
+        sentDate.setHours(0, 0, 0, 0);
+
+        if (sentDate.getTime() === yesterday.getTime()) {
+          breakdown.sentYesterday++;
+        } else if (sentDate.getTime() === today.getTime()) {
+          breakdown.sentToday++;
+        }
+        
+        recentEmails.push(email);
+      });
+
+      // Get 5 most recent emails
+      const sortedEmails = recentEmails
+        .filter(email => email.sentAt)
+        .sort((a, b) => new Date(b.sentAt!).getTime() - new Date(a.sentAt!).getTime())
+        .slice(0, 5);
+
+      breakdown.recentEmails = sortedEmails.map(email => ({
+        id: email.id,
+        recipient: email.to,
+        subject: email.subject,
+        sentAt: email.sentAt,
+        status: email.status
+      }));
+
+      res.json(breakdown);
+    } catch (error) {
+      console.error("Error fetching email breakdown:", error);
+      res.status(500).json({ error: "Failed to fetch email breakdown" });
     }
   });
 

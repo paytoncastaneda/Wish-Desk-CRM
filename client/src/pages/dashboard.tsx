@@ -121,10 +121,10 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4 py-3 border-b border-gray-100 last:border-b-0">
               <div className="w-8 h-8 bg-success rounded-full flex items-center justify-center">
-                <Github className="text-white w-4 h-4" />
+                <FileText className="text-white w-4 h-4" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">GitHub repository synchronized</p>
+                <p className="text-sm font-medium text-gray-900">Documentation updated</p>
                 <p className="text-xs text-gray-500">4 hours ago</p>
               </div>
             </div>

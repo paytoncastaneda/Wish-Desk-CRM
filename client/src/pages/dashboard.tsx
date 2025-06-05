@@ -158,11 +158,12 @@ export default function Dashboard() {
           onClick={() => setShowDrillDown(showDrillDown === 'emailsSent' ? null : 'emailsSent')}
         />
         <StatCard
-          title="Task Completion Rate"
-          value={`${(stats as any)?.taskCompletionRate || 85}%`}
+          title="Opportunities"
+          value={(stats as any)?.totalOpportunities || 8}
           icon={Target}
           change="+3%"
           color="bg-blue-500"
+          onClick={() => setShowDrillDown(showDrillDown === 'opportunities' ? null : 'opportunities')}
         />
       </div>
 
@@ -336,6 +337,62 @@ export default function Dashboard() {
                   ) : (
                     <div className="text-center text-gray-500 py-4">No recent emails found</div>
                   )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Opportunities Drill Down */}
+      {showDrillDown === 'opportunities' && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Opportunities Breakdown</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDrillDown(null)}
+              >
+                Close
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-green-50 rounded-lg border">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {(opportunitiesBreakdown as any)?.closeRate || 0}%
+                  </div>
+                  <div className="text-sm font-medium text-green-700">Close Rate</div>
+                  <div className="text-xs text-green-500 mt-1">Won opportunities this month</div>
+                </div>
+              </div>
+              <div className="p-4 bg-red-50 rounded-lg border">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {(opportunitiesBreakdown as any)?.overdueOpportunities || 0}
+                  </div>
+                  <div className="text-sm font-medium text-red-700">Overdue Opportunities</div>
+                  <div className="text-xs text-red-500 mt-1">Past estimated ship date</div>
+                </div>
+              </div>
+              <div className="p-4 bg-orange-50 rounded-lg border">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {(opportunitiesBreakdown as any)?.currentMonthOpportunities || 0}
+                  </div>
+                  <div className="text-sm font-medium text-orange-700">Current Month Opportunities</div>
+                  <div className="text-xs text-orange-500 mt-1">Ship date this month</div>
+                </div>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg border">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {(opportunitiesBreakdown as any)?.futureOpportunities || 0}
+                  </div>
+                  <div className="text-sm font-medium text-blue-700">Future Opportunities</div>
+                  <div className="text-xs text-blue-500 mt-1">Next month and beyond</div>
                 </div>
               </div>
             </div>

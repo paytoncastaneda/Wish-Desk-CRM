@@ -1,0 +1,23 @@
+Table Name:,company_users_pivot,,
+Table Description: ,,,
+,,,
+Fields,Example,Description,Notes
+id,1,,
+company_id,9199,This is the company ID for the company a user belongs to (where the user is added as a user or admin on that company account),
+user_id,6,,
+status,"active, invited, inactive, deleted",,
+access_level,"admin, user","This is the company access level and is either ""admin"" or ""user""
+Essentially, admins can see details for all users and all orders on the account, and users can only see details for their own orders",
+activation_code,,This will be populated if the user was invited to an existing account,"If the activation_code is not empty and the status is not invited, that means they were invited and they followed the link to create a password successfully "
+active_date,,,
+created_at,,,
+updated_at,,,
+revenue,,,
+l30d_rev,,,
+l90d_rev,,,
+ytd_rev,,,
+lytd_rev,,,
+lastyear_rev,,,
+f7d_rev,,,
+f30d_rev,,,
+first_order_date,,,

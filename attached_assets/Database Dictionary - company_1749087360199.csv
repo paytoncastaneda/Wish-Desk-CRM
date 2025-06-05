@@ -1,0 +1,110 @@
+Table Name:,company,,
+Table Description: ,Includes all company account records and most company specific answers,,
+,,,
+Fields,Example,Description,Notes
+id,9199,auto-increment assigned when the record is created,
+magento_name,Caley Powell,company account name assigned when the account is created,"This will be a combination of the user entered Company Name, plus a hyphen, plus the user's first name and last name. This is used to match customer accounts between Insightly CRM and Quickbooks, so this name can never be edited after record is created and imported into Insightly and/or Quickbooks. If any name change is required for display, then that change must be applied to the `name` field instead."
+slug,,,
+url_key,,,
+name,Sugarwish-Caley Powell,"company account name
+will match company:magento_name when record is created; can be modified by admins any time","This will be displayed anywhere a company user sees their company name, like on invoices"
+shortname,,,
+phone,,,
+country,,,
+street,,,
+city,,,
+state,,,
+zip,,,
+billing_emails,,,
+logo,,,
+discount_percent,,,
+redeem_only,,,
+secure,,,
+created_by,,,
+active,,,
+notes,,,
+cc_on_file,,,
+send_confirm,,,
+new_buyer_site,,,
+pricing_schedule,,,
+product_exclusion,,,
+invoice_by_user,,,
+survey,,,
+make_public,,,
+disable_all,,,
+gifts,1-20,This is the number of gifts selected by the user during onboarding,"If users pick ""less than 20 gifts"" / ""fewer than 20 gifts"", then the system will store gifts=1-20"
+gifts_frequency,,,
+created_at,,,
+updated_at,,,
+new_company_credit,5,"This is the amount of credit issued automatically when the user creates the account; this is determined by using a specific sign up link with ""embedded credit"" like https://sugarwish.com/new-sign-up-5. There will be a matching invoice_adjustments record which issues the credit for use",
+credit_used,,,
+charge_month_end,0 or 1,"if = 0 then users will pay at checkout
+if = 1 then users will not pay at checkout and will be billed later via invoice","- if = 1 then when orders are placed, giftcards_card.paid=0
+- after the eCard is sent, or if redeem_only=1 then after the eCard is redeemed, then it will be added to an invoice and invoice_cards_pivot and once the invoice is sent, then giftcards_card.paid changes to =1
+
+- these companies could not use the ""Purchase Credit"" feature before the credits overhaul in Q3 2023
+- these companies were not allowed to own invoice_adjustments where type=credit, and all invoice_adjustments will be type=normal; this was before the credits overhaul in Q3 2023"
+source,,,
+show_special_order_page,,,
+header_image,,,
+special_order_page_url,,,
+email_domain,,,
+privacy_restricted,,,
+no_follow_up,,,
+payment_method,,,
+referred_by,,,
+referral_source,,,
+wishlink_modal_shown,,,
+use_own_shipping_account,,,
+insightly_organization_id,100349,Company number identifier in our Insightly CRM.,This is uploaded to our database using the bulk company updater. This is used so we can export data from our database and upload it to Insightly (where Insightly only allows matching records using their record ID)
+revenue,,,
+l30d_rev,,,
+l90d_rev,,,
+ytd_rev,,,
+lytd_rev,,,
+lastyear_rev,,,
+f7d_rev,,,
+f30d_rev,,,
+first_order_date,,,
+show_favorite,,,
+expedited_shipping,,,
+makeawish,,,
+makeawish90days,,,
+maw30days,,,
+mawpopup,,,
+vinebox,,,
+custom_image_price,,,
+email_notification,,,
+client_level,,,
+corporate_acct_status,,,
+domain,,,
+record_id,,,
+sales_rep,,,
+industry,,,
+deleted_by,,,
+deleted_at,,,
+invite_id,,,
+referred_company_id,,,
+referred_by_user_id,,,
+custom_only,,,
+is_self_signup,,,
+test_account,,,
+skip_ecard_sku,,,
+international_allowed,,,
+send_sms,,,
+user_responsible,,,
+autoinvoice,0 or 1,used to flag company accounts with straightforward billing settings,"default = 0
+displayed on the company list and company and user uninvoiced balance pages"
+expiration_terms,45,sets expiration date to today plus `expiration_terms`,default is NULL
+validated,0 or 1,"0 means the user did not convert from a consumer account where they already had a credit card, and has not been set to validated from admin UI
+1 means the user converted from a consumer account where they already had a credit card, or was set to validated from admin UI","if = 1 then any user on the account will be able to add a CC, even if the individual user record is validated=0"
+autocancel,,,
+add_expiration_allowed,0 or 1,sets 'Redemption expiration date' with information icon to show or hide in buyer flow,Redemption expiration date' will always show if the company is set to redeem_only=1
+reason,"0, 1, or 2","used when company signs up through onboarding-b
+=0 if did not go through onboarding-b
+=1 if selected ""Business""
+=2 if selected ""Both""",
+gift_cards_allowed,,,
+expiration_pref,,,
+first_call,,,
+category_restricted,,,

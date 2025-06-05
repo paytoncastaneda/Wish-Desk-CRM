@@ -1,0 +1,77 @@
+Table Name:,users,,
+Table Description: ,"Includes all users including consumer, corporate, and internal super admin and billing",,
+,,,
+Fields,Example,Description,Notes
+id,193551,a unique identifier for that user,
+name,John Doe,the user's full name,"this is populated when the user is created and is a combination of the first_name"", ,""last_name"""
+first_name,John,the user's first name,
+last_name,Doe,the user's last name,
+email,johndoe@gmail.com,the user's email address they used to sign up for the account,
+password,$2y$10$U.c.48pomBFuIjp78KmG...,only populates once a user completes setting up their account or when a user's password is changed,in dev as of 2/23/24: changing a password will trigger an email alert to send to the customer and notify them that the change occurred ... field retired at some point previously - 03/14/2025
+remember_token,4tEQq6AfjwSwF9LqHM0gBNwd4q...,only populates once a user logs back into their account after initial setup,
+created_at,2022-01-02 04:28:56,the date and time the user account was created,
+updated_at,2022-02-14 08:41:46,the last date and time the user account was updated,
+deleted_at,2022-02-21 12:35:01,"the date and time the user account was deleted, is null if not deleted",
+status,2,indicates the status of a user and whether they have an account login or not,"0 - means they had an account but it was deactivated
+1 - means they completed the account setup process and have a user account (either through the sign-up page or upon checking out)
+2 - means they added a gift to their cart at some point in time (whether they finished checking out or not) but did not set up an account
+3 - means they went to the sign up page, put in their information and clicked Create Account, but never finished the setup from there"
+is_developer,Y,if that user account is a developer account,
+for_company,no,indicates if it's a personal account or associated with a corporate account,"yes - associated with a corporate account
+no - a personal account"
+cc_on_file,1,is this only if we select cc_on_file or does it change if we mark no and add a card???,
+love_letters,0,"indicates the user opted in for marketing emails with ""sign up for sweet news and love letters""","this is only set to =1 when a user signs up for emails from the RECEIVER flow, and is not set to =1 if they sign up in the buyer flow"
+phone,5166417907,the phone number associated with that user account,
+popup_shown_company,0,,
+company_orders,19,is this the total orders this specific user has placed on the account or total for all users on that account as a whole?,
+referal_code,,,
+referal_code_usage,d7fvqb,"the referral code the user used to sign up, is null if there was no referral code",
+sms,1,"can be 0, 1, or 2 - not sure what each means",
+is_from_operations,,,field retired at some point previously - 03/14/2025
+sales_rep,,,
+client_level,,,
+client_status,,,
+contact_type,,,
+email_domain,,,
+training_date,,,
+training_status,,,
+industry,,,
+num_of_employees,,,
+mobile_phone,,,
+api_access_token,,,
+gclid,,,
+reset_password_time,,,
+otp_expire,,,
+reset_password_otp_attempt,,,
+otp_code,,,
+mail_token,,,
+test_accont,,,
+ip_address,,,
+oddo_api_access_token,,,
+api_access,1,"0 indicates that the user does not have API enabled
+1 indicates that the user does have API enabled",users with api_access=1 will see the sw_sku and product_sku on the eCard Preview modal for eCards outside of the My Uploaded Images occasion
+insightly_contact_id,283748329,"the user's record ID from our CRM
+populated by importing data into the users table using the bulk users update functionality (developed Spring 2023)",
+user_responsible,,,
+validated,0 or 1,"0 means the user has not added a CC through the buyer flow, and is not allowed to add a CC from payment options
+1 means the user has successfully added a CC through the buyer flow, and is now allowed to add additional CC's from payment options",
+signup_source,,,
+account_type,,,
+last_credit_purchase,2022-11-01 9:45:32,timestamp for the last time the user purchased credit through a company account,"populated when:
+any user purchases credit from the payments page
+an admin purchases credit for another user from the users page; in this case, the timestamp is populated for the user who receives the credit"
+logout,0 or 1,"0 indicates that the user is allowed to login to the account with the existing password
+1 indicates that the user should not be allowed to login to the account with the existing password","this is a new field, developed in March 2024 as a measure to react to fraud
+we created this field so we can force logout any sessions which are signed in to that account
+resetting a password will change from logout=1 back to logout=0"
+klaviyo_id,,,
+user_created_from,,,
+increased_security,,,
+reset_ip,,,
+force_reset,,,
+phone_status,,,
+first_call,,,
+email_status,,,
+textable,,,
+calledwithin24hours,,,
+google_id,,,

@@ -88,7 +88,7 @@ export default function Dashboard() {
             <p className="text-sm font-medium text-gray-500">{title}</p>
             <p className="text-3xl font-semibold text-gray-900">{value || 0}</p>
           </div>
-          <div className={`w-12 h-12 ${color} bg-opacity-10 rounded-lg flex items-center justify-center`}>
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-[#f9f9fb]">
             <Icon className={`${color.replace('bg-', 'text-')} w-6 h-6`} />
           </div>
         </div>
@@ -166,7 +166,6 @@ export default function Dashboard() {
           onClick={() => setShowDrillDown(showDrillDown === 'opportunities' ? null : 'opportunities')}
         />
       </div>
-
       {/* Drill Down Details */}
       {showDrillDown && (showDrillDown === 'mtd' || showDrillDown === 'lastMonth') && (
         <Card>
@@ -210,7 +209,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-
       {/* Active Tasks Drill Down */}
       {showDrillDown === 'activeTasks' && (
         <Card>
@@ -266,7 +264,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-
       {/* Emails Sent Drill Down */}
       {showDrillDown === 'emailsSent' && (
         <Card>
@@ -343,7 +340,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-
       {/* Opportunities Drill Down */}
       {showDrillDown === 'opportunities' && (
         <Card>
@@ -399,7 +395,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-
       {/* Two Months Ago Sales and Estimated Bonus */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -437,7 +432,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
       {/* Team Comparison */}
       <Card>
         <CardContent className="pt-6">
@@ -467,7 +461,7 @@ export default function Dashboard() {
                         <div className="w-16 bg-gray-200 rounded-full h-2">
                           <div 
                             className="bg-primary h-2 rounded-full" 
-                            style={{ width: `${Math.min(100, (member.sales / Math.max(...(teamData as any)?.map((m: any) => m.sales) || [1])) * 100)}%` }}
+                            style={{ width: `${Math.min(100, (member.sales / Math.max(...((teamData as any)?.map((m: any) => m.sales) || [1]))) * 100)}%` }}
                           ></div>
                         </div>
                         <span className="text-xs text-gray-500">{member.change}</span>
@@ -484,7 +478,6 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
-
       {/* Task Completion Trends Chart */}
       <Card>
         <CardContent className="pt-6">
@@ -494,7 +487,6 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
-
       {/* Assigned Domains */}
       <Card>
         <CardContent className="pt-6">
@@ -552,7 +544,6 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
-
       {/* Domain Details Drill Down */}
       {selectedDomain && domainDetails && (
         <Card>
@@ -600,7 +591,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-
       {/* Open Opportunities */}
       <Card>
         <CardContent className="pt-6">

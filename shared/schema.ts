@@ -53,7 +53,7 @@ export const auditLogs = pgTable("audit_logs", {
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
   taskName: text("task_name").notNull(),
-  taskOwner: integer("task_owner").references(() => users.id),
+  taskOwner: integer("assigned_to").references(() => users.id),
   category: text("category"),
   dateDue: timestamp("date_due"),
   expirationDate: timestamp("expiration_date"),
@@ -105,7 +105,7 @@ export const emails = pgTable("emails", {
   subject: text("subject").notNull(),
   body: text("body").notNull(),
   template: text("template"),
-  templateId: integer("template_id"),
+  templateId: integer("template"),
   status: text("status").notNull().default("pending"),
   sentAt: timestamp("sent_at"),
   openedAt: timestamp("opened_at"),

@@ -11,7 +11,7 @@ import { Plus, Edit, Trash2, Calendar, User } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { EnhancedTaskForm } from "@/components/enhanced-task-form";
+import { ComprehensiveTaskForm } from "@/components/comprehensive-task-form";
 import type { Task } from "@shared/schema";
 
 export default function Tasks() {
@@ -51,7 +51,7 @@ export default function Tasks() {
   });
 
   const filteredTasks = tasks.filter((task: Task) => {
-    if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (searchQuery && !task.taskName.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
     return true;
@@ -135,7 +135,7 @@ export default function Tasks() {
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
             </DialogHeader>
-            <EnhancedTaskForm onSuccess={() => {
+            <ComprehensiveTaskForm onSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
             }} />
           </DialogContent>
@@ -210,28 +210,28 @@ export default function Tasks() {
                       <h5 className={`text-sm font-medium truncate ${
                         task.status === "completed" ? "line-through text-gray-500" : "text-gray-900"
                       }`}>
-                        {task.title}
+                        {task.taskName}
                       </h5>
-                      <Badge className={getPriorityColor(task.priority)}>
-                        {task.priority} Priority
+                      <Badge className={getPriorityColor(task.priority || 1)}>
+                        Priority {task.priority || 1}
                       </Badge>
                     </div>
                     
-                    {task.description && (
-                      <p className="text-sm text-gray-500 mb-3">{task.description}</p>
+                    {task.taskDetails && (
+                      <p className="text-sm text-gray-500 mb-3">{task.taskDetails}</p>
                     )}
                     
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      {task.dueDate && (
+                      {task.dateDue && (
                         <span className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          Due: {format(new Date(task.dueDate), "MMM dd, yyyy")}
+                          Due: {format(new Date(task.dateDue), "MMM dd, yyyy")}
                         </span>
                       )}
-                      {task.assignedTo && (
+                      {task.taskOwner && (
                         <span className="flex items-center">
                           <User className="w-3 h-3 mr-1" />
-                          Assigned to: {task.assignedTo}
+                          Owner: {task.taskOwner}
                         </span>
                       )}
                       <Badge className={getStatusColor(task.status)}>

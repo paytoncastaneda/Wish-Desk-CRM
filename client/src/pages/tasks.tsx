@@ -341,30 +341,7 @@ export default function Tasks() {
             New Task
           </Button>
           
-          {/* Admin-only Import/Export Controls */}
-          {isAdmin && (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="border-[#cccccc] text-[#2d3333] font-lato">
-                    <Download className="w-4 h-4 mr-2" />
-                    Export
-                    <ChevronDown className="w-4 h-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={handleBulkExport} className="font-lato">
-                    Export to CSV
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button variant="outline" className="border-[#cccccc] text-[#2d3333] font-lato">
-                <Upload className="w-4 h-4 mr-2" />
-                Import
-              </Button>
-            </>
-          )}
+
           
           <Button
             onClick={() => setShowColumnConfig(true)}
@@ -849,7 +826,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
                   <SelectValue placeholder="Select company" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {swCompanies.map((company) => (
                     <SelectItem key={company.id} value={company.id.toString()}>
                       {company.name}
@@ -866,7 +843,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
                   <SelectValue placeholder="Select opportunity" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {opportunities.map((opportunity) => (
                     <SelectItem key={opportunity.id} value={opportunity.id.toString()}>
                       {opportunity.name}

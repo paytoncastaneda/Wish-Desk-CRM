@@ -857,6 +857,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Task breakdown endpoint for Active Tasks drill-down
+  app.get("/api/tasks/breakdown", authenticate, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Get tasks for the current user that are "Not Started"
+      const userTasks = await db
+        .select()
+        .from(tasks)
+        .where(and(
+          eq(tasks.taskOwner, userId),
+          eq(tasks.status, "Not Started")
+        ));
+
+      const breakdown = {
+        overdue: 0,
+        dueToday: 0,
+        dueTomorrow: 0,
+        dueFuture: 0
+      };
+
+      userTasks.forEach(task => {
+        if (!task.dateDue) {
+          breakdown.dueFuture++;
+          return;
+        }
+
+        const dueDate = new Date(task.dateDue);
+        dueDate.setHours(0, 0, 0, 0);
+
+        if (dueDate < today) {
+          breakdown.overdue++;
+        } else if (dueDate.getTime() === today.getTime()) {
+          breakdown.dueToday++;
+        } else if (dueDate.getTime() === tomorrow.getTime()) {
+          breakdown.dueTomorrow++;
+        } else {
+          breakdown.dueFuture++;
+        }
+      });
+
+      res.json(breakdown);
+    } catch (error) {
+      console.error("Error fetching task breakdown:", error);
+      res.status(500).json({ error: "Failed to fetch task breakdown" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

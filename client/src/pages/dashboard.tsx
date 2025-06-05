@@ -32,7 +32,12 @@ export default function Dashboard() {
 
   const { data: detailedSales } = useQuery({
     queryKey: ["/api/gc/sales-details", selectedPeriod],
-    enabled: !!showDrillDown,
+    enabled: !!showDrillDown && (showDrillDown === 'mtd' || showDrillDown === 'lastMonth'),
+  });
+
+  const { data: taskBreakdown } = useQuery({
+    queryKey: ["/api/tasks/breakdown"],
+    enabled: !!showDrillDown && showDrillDown === 'activeTasks',
   });
 
   const { data: teamData } = useQuery({
@@ -132,6 +137,7 @@ export default function Dashboard() {
           icon={ChartLine}
           change="+5%"
           color="bg-warning"
+          onClick={() => setShowDrillDown(showDrillDown === 'activeTasks' ? null : 'activeTasks')}
         />
         <StatCard
           title="Emails Sent"
@@ -149,8 +155,8 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Sales Details Drill Down */}
-      {showDrillDown && (
+      {/* Drill Down Details */}
+      {showDrillDown && (showDrillDown === 'mtd' || showDrillDown === 'lastMonth') && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-4">
@@ -188,6 +194,62 @@ export default function Dashboard() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Active Tasks Drill Down */}
+      {showDrillDown === 'activeTasks' && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Active Tasks Breakdown</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDrillDown(null)}
+              >
+                Close
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-red-50 rounded-lg border">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {(taskBreakdown as any)?.overdue || 0}
+                  </div>
+                  <div className="text-sm font-medium text-red-700">Overdue Tasks</div>
+                  <div className="text-xs text-red-500 mt-1">Past due date</div>
+                </div>
+              </div>
+              <div className="p-4 bg-orange-50 rounded-lg border">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {(taskBreakdown as any)?.dueToday || 0}
+                  </div>
+                  <div className="text-sm font-medium text-orange-700">Due Today</div>
+                  <div className="text-xs text-orange-500 mt-1">Due today</div>
+                </div>
+              </div>
+              <div className="p-4 bg-yellow-50 rounded-lg border">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {(taskBreakdown as any)?.dueTomorrow || 0}
+                  </div>
+                  <div className="text-sm font-medium text-yellow-700">Due Tomorrow</div>
+                  <div className="text-xs text-yellow-500 mt-1">Due tomorrow</div>
+                </div>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg border">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {(taskBreakdown as any)?.dueFuture || 0}
+                  </div>
+                  <div className="text-sm font-medium text-blue-700">Due in Future</div>
+                  <div className="text-xs text-blue-500 mt-1">Due later</div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

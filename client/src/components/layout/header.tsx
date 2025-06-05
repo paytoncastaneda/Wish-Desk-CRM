@@ -7,7 +7,6 @@ const sectionInfo = {
   "/dashboard": { title: "Dashboard", description: "Overview of your CRM activities and performance" },
   "/": { title: "Dashboard", description: "Overview of your CRM activities and performance" },
   "/tasks": { title: "Task Management", description: "Organize and track your team's tasks" },
-  "/github": { title: "GitHub Integration", description: "Connect and sync your GitHub repositories" },
   "/email": { title: "Email Center", description: "Manage notifications and communications" },
   "/reports": { title: "Reports & Analytics", description: "Generate insights and export data" },
   "/documentation": { title: "Documentation", description: "Process documentation and implementation guides" },

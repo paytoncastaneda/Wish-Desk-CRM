@@ -1,11 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { ChartLine, CheckSquare, Github, Mail, BarChart3, FileText, Star } from "lucide-react";
+import { ChartLine, CheckSquare, Mail, BarChart3, FileText, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
   { href: "/dashboard", label: "Dashboard", icon: ChartLine },
   { href: "/tasks", label: "Task Management", icon: CheckSquare },
-  { href: "/github", label: "GitHub Integration", icon: Github },
   { href: "/email", label: "Email Center", icon: Mail },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/documentation", label: "Documentation", icon: FileText },
@@ -22,8 +21,8 @@ export function Sidebar() {
             <Star className="text-white w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Wish Desk CRM</h1>
-            <p className="text-sm text-gray-500">Internal Management</p>
+            <h1 className="text-xl font-display font-bold text-gray-900">Sugarwish CRM</h1>
+            <p className="text-sm font-body text-gray-500">Internal Management</p>
           </div>
         </div>
       </div>

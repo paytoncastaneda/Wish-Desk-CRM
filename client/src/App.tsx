@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import Tasks from "@/pages/tasks";
-import GitHub from "@/pages/github";
 import Email from "@/pages/email";
 import Reports from "@/pages/reports";
 import Documentation from "@/pages/documentation";
@@ -24,7 +23,6 @@ function Router() {
             <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/tasks" component={Tasks} />
-            <Route path="/github" component={GitHub} />
             <Route path="/email" component={Email} />
             <Route path="/reports" component={Reports} />
             <Route path="/documentation" component={Documentation} />

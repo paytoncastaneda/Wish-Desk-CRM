@@ -415,7 +415,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               <div className="flex justify-between items-center p-3 rounded-lg bg-[#a4e0e5]">
                 <span className="text-sm font-medium">MTD Bonus (1.7%)</span>
-                <span className="text-lg font-semibold text-green-600">
+                <span className="text-lg font-semibold text-[#ffffff]">
                   ${Math.round(((salesData as any)?.mtd || 0) * 0.017).toLocaleString()}
                 </span>
               </div>

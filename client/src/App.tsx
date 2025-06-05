@@ -9,6 +9,7 @@ import Email from "@/pages/email";
 import Reports from "@/pages/reports";
 import Documentation from "@/pages/documentation";
 import AdminHub from "@/pages/admin-hub";
+import GCDashboard from "@/pages/gc-dashboard";
 import NotFound from "@/pages/not-found";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
@@ -23,6 +24,7 @@ function Router() {
           <Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
+            <Route path="/gc-dashboard" component={GCDashboard} />
             <Route path="/tasks" component={Tasks} />
             <Route path="/email" component={Email} />
             <Route path="/reports" component={Reports} />

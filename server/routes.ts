@@ -623,6 +623,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gift Concierge Dashboard API Routes
+  app.get("/api/gc/sales-performance", authenticate, requireRole("gc"), async (req: AuthenticatedRequest, res) => {
+    try {
+      // Sample data - these would be replaced with actual SQL queries
+      const salesData = {
+        mtd: 45000,
+        lastMonth: 52000,
+        twoMonthsAgo: 48000,
+        activeTasks: 12,
+        emailsSent: 34,
+        taskCompletionRate: 85
+      };
+      res.json(salesData);
+    } catch (error) {
+      console.error("Error fetching GC sales performance:", error);
+      res.status(500).json({ error: "Failed to fetch sales performance" });
+    }
+  });
+
+  app.get("/api/gc/team-comparison", authenticate, requireRole("gc"), async (req, res) => {
+    try {
+      // Sample team data - would be replaced with actual queries
+      const teamData = [
+        { id: 1, name: "Sarah Johnson", rank: 1, mtdSales: 65000 },
+        { id: 2, name: "Mike Chen", rank: 2, mtdSales: 58000 },
+        { id: 3, name: "Lisa Davis", rank: 3, mtdSales: 52000 },
+        { id: 4, name: "Current User", rank: 4, mtdSales: 45000 },
+        { id: 5, name: "Tom Wilson", rank: 5, mtdSales: 42000 }
+      ];
+      res.json(teamData);
+    } catch (error) {
+      console.error("Error fetching team comparison:", error);
+      res.status(500).json({ error: "Failed to fetch team comparison" });
+    }
+  });
+
+  app.get("/api/gc/assigned-domains", authenticate, requireRole("gc"), async (req, res) => {
+    try {
+      const filter = req.query.filter || "company_count";
+      // Sample domain data - would be replaced with actual queries
+      const domainsData = [
+        { domain: "techcorp.com", companyCount: 15, revenue: 125000 },
+        { domain: "innovate.org", companyCount: 12, revenue: 98000 },
+        { domain: "globalinc.net", companyCount: 8, revenue: 76000 },
+        { domain: "startup.io", companyCount: 6, revenue: 45000 },
+        { domain: "enterprise.biz", companyCount: 4, revenue: 32000 }
+      ];
+      res.json(domainsData);
+    } catch (error) {
+      console.error("Error fetching assigned domains:", error);
+      res.status(500).json({ error: "Failed to fetch assigned domains" });
+    }
+  });
+
+  app.get("/api/gc/open-opportunities", authenticate, requireRole("gc"), async (req, res) => {
+    try {
+      // Sample opportunities data - would be replaced with actual Insightly integration
+      const opportunitiesData = [
+        {
+          id: 1,
+          name: "TechCorp Q1 Package",
+          value: 15000,
+          estimatedShipDate: "2024-02-15",
+          lastActivityDate: "2024-01-20",
+          nextActivityDate: "2024-01-25",
+          insightlyUrl: "https://sugarwish.insight.ly/opportunities/12345"
+        },
+        {
+          id: 2,
+          name: "Global Inc Holiday Campaign",
+          value: 8500,
+          estimatedShipDate: "2024-02-28",
+          lastActivityDate: "2024-01-18",
+          nextActivityDate: "2024-01-30",
+          insightlyUrl: "https://sugarwish.insight.ly/opportunities/12346"
+        }
+      ];
+      res.json(opportunitiesData);
+    } catch (error) {
+      console.error("Error fetching open opportunities:", error);
+      res.status(500).json({ error: "Failed to fetch open opportunities" });
+    }
+  });
+
+  app.get("/api/gc/sales-details/:period", authenticate, requireRole("gc"), async (req, res) => {
+    try {
+      const period = req.params.period;
+      // Sample detailed sales data - would be replaced with actual queries
+      const salesDetails = [
+        { company: "TechCorp Solutions", amount: 12500, date: "2024-01-15" },
+        { company: "Innovate Labs", amount: 8750, date: "2024-01-12" },
+        { company: "Global Enterprises", amount: 15200, date: "2024-01-08" },
+        { company: "Startup Inc", amount: 6800, date: "2024-01-05" }
+      ];
+      res.json(salesDetails);
+    } catch (error) {
+      console.error("Error fetching sales details:", error);
+      res.status(500).json({ error: "Failed to fetch sales details" });
+    }
+  });
+
+  app.get("/api/gc/domain-details/:domain", authenticate, requireRole("gc"), async (req, res) => {
+    try {
+      const domain = req.params.domain;
+      // Sample domain organization data - would be replaced with actual queries
+      const domainDetails = [
+        {
+          organizationName: "TechCorp Solutions",
+          lastOrderDate: "2024-01-15",
+          lastCreditDate: "2024-01-10",
+          lifetimeRevenue: 125000,
+          lastActivity: "Inbound inquiry about Q1 packages"
+        },
+        {
+          organizationName: "TechCorp Marketing",
+          lastOrderDate: "2023-12-20",
+          lastCreditDate: "2023-12-18",
+          lifetimeRevenue: 85000,
+          lastActivity: "Follow-up call scheduled"
+        }
+      ];
+      res.json(domainDetails);
+    } catch (error) {
+      console.error("Error fetching domain details:", error);
+      res.status(500).json({ error: "Failed to fetch domain details" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

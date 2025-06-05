@@ -114,6 +114,27 @@ export default function AdminHub() {
     },
   });
 
+  // Email template category mutations
+  const createEmailCategoryMutation = useMutation({
+    mutationFn: async (data: EmailTemplateCategoryFormData) => {
+      return apiRequest("POST", "/api/admin/email-template-categories", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/email-template-categories"] });
+      toast({ title: "Success", description: "Email template category created successfully" });
+    },
+  });
+
+  const updateEmailCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: EmailTemplateCategoryFormData }) => {
+      return apiRequest("PUT", `/api/admin/email-template-categories/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/email-template-categories"] });
+      toast({ title: "Success", description: "Email template category updated successfully" });
+    },
+  });
+
   // Forms
   const categoryForm = useForm<TaskCategoryFormData>({
     resolver: zodResolver(taskCategorySchema),
@@ -123,6 +144,11 @@ export default function AdminHub() {
   const userForm = useForm<UserManagementFormData>({
     resolver: zodResolver(userManagementSchema),
     defaultValues: { username: "", email: "", role: "view_only", isActive: true, password: "" },
+  });
+
+  const emailCategoryForm = useForm<EmailTemplateCategoryFormData>({
+    resolver: zodResolver(emailTemplateCategorySchema),
+    defaultValues: { name: "", description: "", isActive: true },
   });
 
   const getRoleColor = (role: string) => {
@@ -276,6 +302,128 @@ export default function AdminHub() {
                       </TableCell>
                     </TableRow>
                   ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Email Template Categories Management */}
+        <TabsContent value="email-categories">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Email Template Categories</CardTitle>
+                  <CardDescription>Manage categories for email templates used by Gift Concierges</CardDescription>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Email Category
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Email Template Category</DialogTitle>
+                    </DialogHeader>
+                    <Form {...emailCategoryForm}>
+                      <form onSubmit={emailCategoryForm.handleSubmit((data) => createEmailCategoryMutation.mutate(data))} className="space-y-4">
+                        <FormField
+                          control={emailCategoryForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Category Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., follow-up, welcome, proposal" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={emailCategoryForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description (Optional)</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Brief description of this category" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={emailCategoryForm.control}
+                          name="isActive"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">Active</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Enable this category for use
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" disabled={createEmailCategoryMutation.isPending}>
+                          {createEmailCategoryMutation.isPending ? "Creating..." : "Create Category"}
+                        </Button>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {emailTemplateCategories.map((category: any) => (
+                    <TableRow key={category.id}>
+                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell>{category.description || "No description"}</TableCell>
+                      <TableCell>
+                        <Badge className={category.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                          {category.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline">
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="destructive">
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {emailTemplateCategories.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                        No email template categories found. Create your first category to get started.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

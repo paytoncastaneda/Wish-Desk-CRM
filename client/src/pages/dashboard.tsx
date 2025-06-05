@@ -94,7 +94,7 @@ export default function Dashboard() {
         </div>
         {change && (
           <div className="mt-4 flex items-center">
-            <span className="text-success text-sm font-medium">{change}</span>
+            <span className="text-sm font-medium text-[#55c5ce]">{change}</span>
             <span className="text-gray-500 text-sm ml-2">from last period</span>
           </div>
         )}

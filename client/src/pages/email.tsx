@@ -70,23 +70,37 @@ export default function EmailCenter() {
   // AI template generation mutation
   const generateTemplateMutation = useMutation({
     mutationFn: async (data: { description: string; tone: string; purpose: string }) => {
-      return apiRequest("POST", "/api/email-templates/generate", data);
+      const response = await apiRequest("POST", "/api/email-templates/generate", data);
+      return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (response: any) => {
+      console.log("AI Generation Response:", response);
       // Clean the HTML content by removing markdown code blocks if present
-      let cleanHTML = data.htmlContent;
-      if (cleanHTML.startsWith('```html\n')) {
+      let cleanHTML = response.htmlContent;
+      if (cleanHTML && cleanHTML.startsWith('```html\n')) {
         cleanHTML = cleanHTML.replace(/```html\n/, '').replace(/\n```$/, '');
       }
-      templateForm.setValue("htmlContent", cleanHTML);
-      setIsAIDialogOpen(false);
-      setAiDescription("");
-      toast({
-        title: "Success",
-        description: "AI template generated successfully",
-      });
+      
+      if (cleanHTML) {
+        templateForm.setValue("htmlContent", cleanHTML);
+        // Force a re-render to show the updated content
+        templateForm.trigger("htmlContent");
+        setIsAIDialogOpen(false);
+        setAiDescription("");
+        toast({
+          title: "Success",
+          description: "AI template generated and inserted successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "No content received from AI generation",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error) => {
+      console.error("AI Generation Error:", error);
       toast({
         title: "Error", 
         description: "Failed to generate AI template",

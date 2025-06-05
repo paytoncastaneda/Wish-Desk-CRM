@@ -1017,7 +1017,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
             </div>
             
             {/* Expiration Date - Only visible to MOD/Admin users */}
-            {user?.role === 'admin' || user?.role === 'mod' ? (
+            {currentUser?.role === 'admin' || currentUser?.role === 'mod' ? (
               <div>
                 <Label className="text-[#2d3333] font-lato">Expiration Date (MOD Use)</Label>
                 <Input
@@ -1042,7 +1042,7 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
                   <SelectItem value="">No Company</SelectItem>
                   {swCompanies.map((company) => (
                     <SelectItem key={company.id} value={company.id.toString()}>
-                      {company.companyName}
+                      {company.name || 'Unknown Company'}
                     </SelectItem>
                   ))}
                 </SelectContent>

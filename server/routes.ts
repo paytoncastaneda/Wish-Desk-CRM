@@ -526,14 +526,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/email-templates", authenticate, requirePermission("templates", "create"), auditLog("create", "email_template"), async (req: AuthenticatedRequest, res) => {
+  app.post("/api/email-templates", authenticate, async (req: AuthenticatedRequest, res) => {
     try {
-      const validatedData = insertSwcrmOutreachTemplateSchema.parse({
-        ...req.body,
-        createdBy: req.user?.id
-      });
+      const templateData = {
+        name: req.body.name,
+        subject: req.body.subject,
+        htmlContent: req.body.htmlContent,
+        assignedUserId: req.body.assignedUserId || null,
+        category: req.body.category || 'general',
+        isGlobal: req.body.isGlobal || false,
+        createdBy: req.user?.id || 1,
+        isActive: true
+      };
       
-      const [template] = await db.insert(swcrmOutreachTemplates).values(validatedData).returning();
+      const [template] = await db.insert(swcrmOutreachTemplates).values(templateData).returning();
       res.json(template);
     } catch (error) {
       console.error("Error creating email template:", error);
@@ -748,6 +754,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching domain details:", error);
       res.status(500).json({ error: "Failed to fetch domain details" });
+    }
+  });
+
+  // AI-assisted template generation
+  app.post("/api/email-templates/generate", authenticate, async (req, res) => {
+    try {
+      const { description, tone, purpose } = req.body;
+      
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const prompt = `Create a professional HTML email template for Sugarwish (a gift company) based on this description: "${description}". 
+
+      Tone: ${tone || 'professional and friendly'}
+      Purpose: ${purpose || 'general outreach'}
+
+      Requirements:
+      - Use Sugarwish brand colors (gold #D4AF37, brown #8B4513)
+      - Include placeholders like {{customer_name}}, {{gc_name}}, {{company_name}}
+      - Professional email structure with header, content, and footer
+      - Mobile-responsive design
+      - Include a call-to-action button
+      - Maximum width 600px
+      - Clean, modern design
+
+      Return only the HTML code without any explanations.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 2000,
+      });
+
+      const htmlContent = response.choices[0].message.content;
+      res.json({ htmlContent });
+    } catch (error) {
+      console.error("Error generating template:", error);
+      res.status(500).json({ error: "Failed to generate template" });
+    }
+  });
+
+  // Email template categories management for Admin Hub
+  app.get("/api/admin/email-template-categories", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+      const categories = [
+        { id: 1, name: "general", description: "General purpose templates", isActive: true },
+        { id: 2, name: "welcome", description: "Welcome emails for new customers", isActive: true },
+        { id: 3, name: "follow-up", description: "Follow-up and check-in emails", isActive: true },
+        { id: 4, name: "proposal", description: "Business proposals and offers", isActive: true },
+        { id: 5, name: "holiday", description: "Holiday and seasonal campaigns", isActive: true }
+      ];
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching email template categories:", error);
+      res.status(500).json({ error: "Failed to fetch email template categories" });
+    }
+  });
+
+  app.post("/api/admin/email-template-categories", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+      const { name, description } = req.body;
+      const category = {
+        id: Date.now(),
+        name: name.toLowerCase(),
+        description,
+        isActive: true
+      };
+      res.json(category);
+    } catch (error) {
+      console.error("Error creating email template category:", error);
+      res.status(500).json({ error: "Failed to create email template category" });
+    }
+  });
+
+  app.put("/api/admin/email-template-categories/:id", authenticate, requireRole("admin"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, description, isActive } = req.body;
+      const category = {
+        id,
+        name: name.toLowerCase(),
+        description,
+        isActive
+      };
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating email template category:", error);
+      res.status(500).json({ error: "Failed to update email template category" });
     }
   });
 

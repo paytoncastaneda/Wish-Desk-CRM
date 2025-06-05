@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Mail, Send, User, Calendar, BarChart3, Plus, Edit, Eye, FileText, Code, Users, Clock, MailOpen, Trash2 } from "lucide-react";
+import { Mail, Send, User, Calendar, BarChart3, Plus, Edit, Eye, FileText, Code, Users, Clock, MailOpen, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -40,10 +40,14 @@ type EmailFormData = z.infer<typeof emailSchema>;
 export default function EmailCenter() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [previewMode, setPreviewMode] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
+  const [aiDescription, setAiDescription] = useState("");
+  const [aiTone, setAiTone] = useState("professional");
+  const [aiPurpose, setAiPurpose] = useState("general");
   const { toast } = useToast();
 
   // Fetch data
@@ -61,6 +65,29 @@ export default function EmailCenter() {
 
   const { data: stats = {}, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/emails/stats"],
+  });
+
+  // AI template generation mutation
+  const generateTemplateMutation = useMutation({
+    mutationFn: async (data: { description: string; tone: string; purpose: string }) => {
+      return apiRequest("POST", "/api/email-templates/generate", data);
+    },
+    onSuccess: (data) => {
+      templateForm.setValue("htmlContent", data.htmlContent);
+      setIsAIDialogOpen(false);
+      setAiDescription("");
+      toast({
+        title: "Success",
+        description: "AI template generated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error", 
+        description: "Failed to generate AI template",
+        variant: "destructive",
+      });
+    },
   });
 
   // Mutations

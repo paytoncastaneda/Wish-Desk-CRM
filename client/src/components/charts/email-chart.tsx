@@ -21,9 +21,11 @@ export function EmailChart() {
     );
   }
 
+  const chartData = Array.isArray(emailData) ? emailData : [];
+
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={emailData || []}>
+      <BarChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="week" />
         <YAxis />

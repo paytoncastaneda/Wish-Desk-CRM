@@ -9,6 +9,13 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/stats"],
   });
 
+  interface DashboardStats {
+    activeTasks: number;
+    emailsSent: number;
+    reportsGenerated: number;
+    documentation: number;
+  }
+
   const StatCard = ({ title, value, icon: Icon, change, color }: any) => (
     <Card>
       <CardContent className="pt-6">
@@ -56,28 +63,28 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Active Tasks"
-          value={stats?.activeTasks}
+          value={(stats as DashboardStats)?.activeTasks || 0}
           icon={ChartLine}
           change="+12%"
           color="bg-primary"
         />
         <StatCard
           title="Documentation"
-          value={stats?.documentation}
+          value={(stats as DashboardStats)?.documentation || 0}
           icon={FileText}
           change="+5 this month"
           color="bg-success"
         />
         <StatCard
           title="Emails Sent"
-          value={stats?.emailsSent}
+          value={(stats as DashboardStats)?.emailsSent || 0}
           icon={Mail}
           change="+8%"
           color="bg-warning"
         />
         <StatCard
           title="Reports Generated"
-          value={stats?.reportsGenerated}
+          value={(stats as DashboardStats)?.reportsGenerated || 0}
           icon={BarChart3}
           change="+3 this week"
           color="bg-purple-500"

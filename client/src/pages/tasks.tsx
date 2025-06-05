@@ -56,9 +56,7 @@ export default function Tasks() {
     linkedItems: true, // Combined linked contacts/companies/opportunities
   });
 
-  // Current user info for role-based features
-  const currentUser = { role: 'sales_rep' }; // This would come from auth context
-  const isAdmin = currentUser.role === 'admin';
+  // Current user info for role-based features will be fetched with useQuery
 
   // Default task views
   const defaultViews = [
@@ -125,6 +123,10 @@ export default function Tasks() {
 
   const { data: users = [] } = useQuery<UserType[]>({
     queryKey: ["/api/users"],
+  });
+
+  const { data: currentUser } = useQuery<UserType>({
+    queryKey: ["/api/user"],
   });
 
   const { data: swUsers = [] } = useQuery<SwUser[]>({
@@ -867,15 +869,20 @@ interface TaskFormDialogProps {
 }
 
 function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies, opportunities, onSubmit }: TaskFormDialogProps) {
+  // Get current user data
+  const { data: currentUser } = useQuery<UserType>({
+    queryKey: ["/api/user"],
+  });
+
   const [formData, setFormData] = useState<InsertSwcrmTask>({
-    taskOwner: 1,
-    taskCreatedBy: 1,
+    taskOwner: currentUser?.id || 1, // Default to current user
+    taskCreatedBy: currentUser?.id || 1,
     taskName: "",
     category: "CALL",
     taskDetails: "",
     dateDue: null,
     expirationDate: null,
-    priority: 1,
+    priority: 2, // Default to Medium (2)
     status: "Not Started",
     linkedSwUserId: null,
     linkedSwCompanyId: null,
@@ -888,6 +895,44 @@ function TaskFormDialog({ open, onOpenChange, task, users, swUsers, swCompanies,
     recurrencePattern: null,
     recurrenceInterval: 1,
   });
+
+  // Update defaults when current user data is available
+  useEffect(() => {
+    if (currentUser && !task) {
+      setFormData(prev => ({
+        ...prev,
+        taskOwner: currentUser.id,
+        taskCreatedBy: currentUser.id,
+      }));
+    }
+  }, [currentUser, task]);
+
+  // Initialize form data when editing a task
+  useEffect(() => {
+    if (task) {
+      setFormData({
+        taskOwner: task.taskOwner || currentUser?.id || 1,
+        taskCreatedBy: task.taskCreatedBy || currentUser?.id || 1,
+        taskName: task.taskName || "",
+        category: task.category || "CALL",
+        taskDetails: task.taskDetails || "",
+        dateDue: task.dateDue,
+        expirationDate: task.expirationDate,
+        priority: task.priority || 2,
+        status: task.status || "Not Started",
+        linkedSwUserId: task.linkedSwUserId,
+        linkedSwCompanyId: task.linkedSwCompanyId,
+        linkedSwCrmProposalId: task.linkedSwCrmProposalId,
+        linkedSwCrmOpportunityId: task.linkedSwCrmOpportunityId,
+        linkedSwCrmNotesId: task.linkedSwCrmNotesId,
+        linkedSwCrmPromotionsId: task.linkedSwCrmPromotionsId,
+        assignToSidekick: task.assignToSidekick,
+        isRecurring: task.isRecurring || false,
+        recurrencePattern: task.recurrencePattern,
+        recurrenceInterval: task.recurrenceInterval || 1,
+      });
+    }
+  }, [task, currentUser]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
